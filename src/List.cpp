@@ -64,15 +64,14 @@ int LstInit (List *lst, long init_size)
   type_t *data_mem = (type_t *) calloc ((size_t) init_size, sizeof (type_t));
   if (!data_mem)
   {
-    LOG_FATAL("LOCATING MEMORY FAIL\n");
+    LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
     return MEM_ALLOC_ERR;
   }
 
   long *next_mem = (long *) calloc ((size_t) init_size, sizeof (long));
   if (!next_mem)
   {
-    LOG_PRINT ("\n#######\n\
-                  FATAL: ALLOCATING MEMORY FAIL\n");
+    LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
     return MEM_ALLOC_ERR;
   }
 
@@ -87,15 +86,16 @@ int LstInit (List *lst, long init_size)
   lst->tail     =         0;
   lst->head     =         0;
 
-  LOG_PRINT ("List Initialized\n");
+  LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
+  LstDump (lst, 0, __FUNCTION__);
   return OK;
 }
 
-long FindFree (List *lst)
+long FindByNext (List *lst, long key)
 {
   for (long elem = 0; elem < lst->capacity; elem++)
   {
-    if (lst->next[elem] == -1)
+    if (lst->next[elem] == key)
       return elem;
   }
   return -1;
@@ -109,17 +109,23 @@ long ListInsert (List *lst, type_t value, long place)
     LOG_ERROR ("INVALID INSERT ARG\nplace > capacity!\n");
     return INVALID_INS_ARG;
   }
-  if (place == -1)
+
+  if (lst->tail == 0)
+  {
+    LOG_ERROR ("INVALID INSERT\ninsert after 0 elem!\n");
+    return INVALID_INS_ARG;
+  }
+  else if (place == -1)
   {
     place = lst->tail;
   }
-  if (place < 1 || lst->tail == 0)
+  else if (place < 0)
   {
     LOG_ERROR ("INVALID INSERT ARG\nplace < 0!\n");
     return INVALID_INS_ARG;
   }
 
-  long dest = FindFree (lst);
+  long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
     LOG_ERROR ("NO FREE SPACE\n");
@@ -138,7 +144,7 @@ long ListInsert (List *lst, type_t value, long place)
 long ListPushBack (List *lst, type_t value)
 {
   LstDump (lst, 0, __FUNCTION__);
-  long dest = FindFree (lst);
+  long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
     LOG_ERROR ("NO FREE SPACE\n");
@@ -166,7 +172,7 @@ long ListPushBack (List *lst, type_t value)
 long ListPushFront (List *lst, type_t value)
 {
   LstDump (lst, 0, __FUNCTION__);
-  long dest = FindFree (lst);
+  long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
     LOG_ERROR ("NO FREE SPACE\n");
@@ -190,16 +196,88 @@ long ListPushFront (List *lst, type_t value)
   return dest;
 }
 
-long ListPopBack ()
+type_t ListPopBack (List *lst, int *pop_err)
 {
-  
+  LstDump (lst, 0, __FUNCTION__);
 
+  if (lst->tail == 0)
+  {
+    fprintf (Log_file,
+            "<em style = \"color : red\">ERROR: ZERO ELEMENT POP</em>\n");
+    if (pop_err) *pop_err = POP_FIND_ERR;
+    return POP_FIND_ERR;
+  }
+
+  if (lst->tail == lst->head)
+  {
+    lst->next[lst->tail] = -1;
+    type_t tmp = lst->data[lst->tail];
+    lst->data[lst->tail] =  0;
+    lst->tail            =  0;
+    lst->head            =  0;
+
+    return tmp;
+  }
+
+  long prev = FindByNext (lst, lst->tail);
+  if (prev == -1)
+  {
+    fprintf (Log_file,
+            "<em style = \"color : red\">ERROR: NO ELEMENT FOUND:\n\
+             expected next = %ld</em>\n",
+             lst->tail);
+    if (pop_err) *pop_err = POP_FIND_ERR;
+    return POP_FIND_ERR;
+  }
+
+  lst->next[prev]      =  0;
+  lst->next[lst->tail] = -1;
+  type_t tmp = lst->data[lst->tail];
+  lst->data[lst->tail] =  0;
+  lst->tail = prev;
+
+  LstDump (lst, 0, __FUNCTION__);
+  return tmp;
+}
+
+type_t ListPopFront (List *lst, int *pop_err)
+{
+  LstDump (lst, 0, __FUNCTION__);
+
+  if (lst->head == 0)
+  {
+    fprintf (Log_file,
+            "<em style = \"color : red\">ERROR: ZERO ELEMENT POP</em>\n");
+    if (pop_err) *pop_err = POP_FIND_ERR;
+    return POP_FIND_ERR;
+  }
+
+  if (lst->tail == lst->head)
+  {
+    lst->next[lst->tail] = -1;
+    type_t tmp = lst->data[lst->tail];
+    lst->data[lst->tail] =  0;
+    lst->tail            =  0;
+    lst->head            =  0;
+
+    return tmp;
+  }
+
+  long next = lst->next[lst->head];
+
+  type_t tmp = lst->data[lst->head];
+  lst->data[lst->tail] =  0;
+  lst->next[lst->head] = -1;
+  lst->tail = next;
+
+  LstDump (lst, 0, __FUNCTION__);
+  return tmp;
 }
 
 int LstDtor (List *lst)
 {
   LstDump (lst, 0, __FUNCTION__);
-  LOG_PRINT ("List destructed\n");
+  LOG_PRINT ("<em style = \"color : #16c95e\">List destructed</em>\n");
 
   #ifdef LIST_LOGS
     CloseLogFile ();
@@ -220,7 +298,7 @@ int LstDtor (List *lst)
   return OK;
 }
 
-uint64_t LstDump (List *lst, uint64_t err, const char *called_from)
+int64_t LstDump (List *lst, int64_t err, const char *called_from)
 {
   #ifdef LIST_LOGS
     if (!Log_file) return -1;
@@ -279,8 +357,8 @@ uint64_t LstDump (List *lst, uint64_t err, const char *called_from)
 
       fprintf (Log_file, "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\
                           \n}</pre>", lst->head, lst->tail);
-      //
-      // fprintf (Log_file, HLINE (900, 0) "\n");
+
+      fprintf (Log_file, HLINE (900, 0) "\n");
     }
   #endif
 

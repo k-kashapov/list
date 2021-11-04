@@ -15,6 +15,7 @@ enum EXIT_CODES
   MEM_ALLOC_ERR   = -1,
   INVALID_INS_ARG = -2,
   OPEN_FILE_FAIL  = -3,
+  POP_FIND_ERR    = -4,
 };
 
 #ifdef LIST_LOGS
@@ -48,8 +49,8 @@ enum EXIT_CODES
   #define LOG_PRINT(string) printf (string)
 #endif
 
-#define LOG_FATAL(string) fprintf(stderr, "\n----------------\nFATAL: " string)
-#define LOG_ERROR(string) LOG_PRINT ("\n----\nERROR: " string)
+#define LOG_FATAL(string) fprintf(stderr, "\n----------------\n<em style = \"color : red\">FATAL: " string "</em>")
+#define LOG_ERROR(string) LOG_PRINT ("\n----\n<em style = \"color : red\">ERROR</em>: " string)
 
 struct List
 {
@@ -68,7 +69,7 @@ struct List
 
 int LstInit (List *lst, long init_size = 2);
 
-long FindFree (List *lst);
+long FindByNext (List *lst, long key);
 
 long ListInsert (List *lst, type_t value, long place = -1);
 
@@ -76,8 +77,12 @@ long ListPushBack (List *lst, type_t value);
 
 long ListPushFront (List *lst, type_t value);
 
+type_t ListPopBack (List *lst, int *pop_err = NULL);
+
+type_t ListPopFront (List *lst, int *pop_err);
+
 int LstDtor (List *lst);
 
-uint64_t LstDump (List *lst, uint64_t err, const char *called_from);
+int64_t LstDump (List *lst, int64_t err, const char *called_from);
 
 unsigned int MurmurHash (void *ptr, int len);
