@@ -69,10 +69,22 @@ struct List
   #endif
 };
 
-#define GET_HASHES unsigned int lst_hash = MurmurHash (lst, (unsigned int) sizeof (List));   \
-                   int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t)); \
-                   unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);            \
-                   unsigned int next_hash = MurmurHash (lst->next, lst_buff_len)
+#ifdef HASH_PROTECTION
+  #define GET_HASHES  unsigned int list_len = (unsigned int) (sizeof (List) - 3 * sizeof (int)); \
+                      unsigned int lst_hash = MurmurHash (lst, list_len);                        \
+                      printf ("Just set: %u, func = %s\n", lst_hash, __FUNCTION__);\
+                      int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t));  \
+                      unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);             \
+                      unsigned int next_hash = MurmurHash (lst->next, lst_buff_len)
+
+  #define SET_HASHES  GET_HASHES;                   \
+                      lst->list_hash =  lst_hash;   \
+                      lst->data_hash = data_hash;   \
+                      lst->next_hash = next_hash
+#else
+  #define GET_HASHES ;
+  #define SET_HASHES ;
+#endif
 
 int LstInit (List *lst, long init_size = LIST_INIT_CAP);
 

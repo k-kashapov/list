@@ -95,8 +95,17 @@ int LstInit (List *lst, long init_size)
   lst->tail     =         0;
   lst->head     =         0;
 
+  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+
+  SET_HASHES;
+
+  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+
   LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
   LstDump (lst, 0, __FUNCTION__);
+
+  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+  
   return OK;
 }
 
@@ -156,6 +165,8 @@ long ListInsert (List *lst, type_t value, long place)
   lst->next[dest]  = lst->next[place];
   lst->next[place] = dest;
 
+  SET_HASHES;
+
   LstDump (lst, 0, __FUNCTION__);
 
   return dest;
@@ -177,6 +188,9 @@ long ListPushBack (List *lst, type_t value)
     lst->head = dest;
     lst->data[dest] = value;
     lst->next[dest] = 0;
+
+    SET_HASHES;
+
     return dest;
   }
 
@@ -184,6 +198,8 @@ long ListPushBack (List *lst, type_t value)
   lst->next[dest] = 0;
   lst->next[lst->tail] = dest;
   lst->tail = dest;
+
+  SET_HASHES;
 
   LstDump (lst, 0, __FUNCTION__);
   return dest;
@@ -205,12 +221,17 @@ long ListPushFront (List *lst, type_t value)
     lst->head = dest;
     lst->data[dest] = value;
     lst->next[dest] = 0;
+
+    SET_HASHES;
+
     return dest;
   }
 
   lst->data[dest] = value;
   lst->next[dest] = lst->head;
   lst->head = dest;
+
+  SET_HASHES;
 
   LstDump (lst, 0, __FUNCTION__);
   return dest;
@@ -236,6 +257,8 @@ type_t ListPopBack (List *lst, int *pop_err)
     lst->tail            =  0;
     lst->head            =  0;
 
+    SET_HASHES;
+
     return tmp;
   }
 
@@ -255,6 +278,8 @@ type_t ListPopBack (List *lst, int *pop_err)
   type_t tmp = lst->data[lst->tail];
   lst->data[lst->tail] =  0;
   lst->tail = prev;
+
+  SET_HASHES;
 
   LstDump (lst, 0, __FUNCTION__);
   return tmp;
@@ -280,6 +305,8 @@ type_t ListPopFront (List *lst, int *pop_err)
     lst->tail            =  0;
     lst->head            =  0;
 
+    SET_HASHES;
+
     return tmp;
   }
 
@@ -289,6 +316,8 @@ type_t ListPopFront (List *lst, int *pop_err)
   lst->data[lst->tail] =  0;
   lst->next[lst->head] = -1;
   lst->tail = next;
+
+  SET_HASHES;
 
   LstDump (lst, 0, __FUNCTION__);
   return tmp;
@@ -322,6 +351,8 @@ type_t ListPop (List *lst, long place, int *pop_err)
   lst->next[prev]  =  lst->next[place];
   lst->next[place] =                -1;
   lst->data[place] =                 0;
+
+  SET_HASHES;
 
   LstDump (lst, 0, __FUNCTION__);
   return tmp;
@@ -358,10 +389,7 @@ int64_t ListResize (List *lst, long new_capacity)
     lst->capacity = new_capacity;
 
     #ifdef HASH_PROTECTION
-      GET_HASHES;
-      lst->list_hash =  lst_hash;
-      lst->data_hash = data_hash;
-      lst->next_hash = next_hash;
+      SET_HASHES;
     #endif
 
     return OK;
@@ -411,14 +439,14 @@ int64_t LstDump (List *lst, int64_t err, const char *called_from)
                lst->capacity, (lst->tail - lst->head + lst->capacity) % lst->capacity);
 
       #ifdef HASH_PROTECTION
-        unsigned int lst_hash = MurmurHash (lst, (unsigned int) sizeof (List));
-        int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t));
-        unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);
-        unsigned int next_hash = MurmurHash (lst->next, lst_buff_len);
+        GET_HASHES;
 
-        fprintf (Log_file, "\n\tlist_hash = %u;\n\texpected list_hash = %u;\n\tdata_hash = %u;\n"
-                            "\texpected data_hash = %u;",
-			    lst_hash, lst->list_hash, data_hash, lst->data_hash);
+        printf ("437 = %u\n", MurmurHash (lst, sizeof (List)));
+        printf ("438 = %u\n", MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+
+        fprintf (Log_file,  "\n\tlistddd_hash = %3u;\n\texpected list_hash = %3u;\n"
+                            "\tdata_hash = %u;\n\texpected data_hash = %u;",
+			                      lst_hash, lst->list_hash, data_hash, lst->data_hash);
       #endif
 
       if (!lst->data)

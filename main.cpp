@@ -4,7 +4,13 @@ int main (int argc, const char **argv)
 {
   List lst = {};
 
+  printf ("main1 = %u\n", MurmurHash (&lst, sizeof (List)));
+  printf ("main2 = %u\n", MurmurHash (&lst, sizeof (List) - 3 * sizeof (int)));
+
   LstInit (&lst, 10);
+
+  printf ("main3 = %u\n", sizeof (List));
+  printf ("main4 = %u\n", sizeof (List) - 3 * sizeof (int));
 
   ListInsert (&lst, 5);
   ListInsert (&lst, 8);
