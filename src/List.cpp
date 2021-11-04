@@ -1,6 +1,7 @@
 #include "List.h"
 
 static FILE *Log_file = NULL;
+static FILE *Graph_file = NULL;
 
 static int OpenLogFile ()
 {
@@ -37,6 +38,14 @@ static int OpenLogFile ()
                       </style>\
                       <body>\
                       <pre>");
+
+  Graph_file = fopen ("dotInput.dot", "w");
+  if (!Graph_file)
+  {
+    printf ("OPENING GRAPH FILE FAILED\n");
+    return OPEN_FILE_FAIL;
+  }
+  fprintf (Graph_file, "digraph\n{\n");
   return OK;
 }
 
@@ -106,13 +115,16 @@ long ListInsert (List *lst, type_t value, long place)
   LstDump (lst, 0, __FUNCTION__);
   if (place > lst->capacity)
   {
-    LOG_ERROR ("INVALID INSERT ARG\nplace > capacity!\n");
+    fprintf (Log_file,
+             LOG_ERROR (INVALID INSERT ARG) "\nplace = %ld > capacity = %ld!\n",
+             place, lst->capacity);
     return INVALID_INS_ARG;
   }
 
   if (lst->tail == 0)
   {
-    LOG_ERROR ("INVALID INSERT\ninsert after 0 elem!\n");
+    fprintf (Log_file,
+             LOG_ERROR (INVALID INSERT) "\ninsert after 0 elem!\n");
     return INVALID_INS_ARG;
   }
   else if (place == -1)
@@ -121,14 +133,22 @@ long ListInsert (List *lst, type_t value, long place)
   }
   else if (place < 0)
   {
-    LOG_ERROR ("INVALID INSERT ARG\nplace < 0!\n");
+    fprintf (Log_file,
+             LOG_ERROR (INVALID INSERT ARG) "\nplace = %ld < 0!\n",
+             place);
     return INVALID_INS_ARG;
+  }
+  else if (lst->next[place] == -1)
+  {
+    fprintf (Log_file,
+             LOG_ERROR (INVALID INSERT ARG) "\nno elem at place = %ld\n",
+             place);
   }
 
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
-    LOG_ERROR ("NO FREE SPACE\n");
+    fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
     return -1;
   }
 
@@ -147,7 +167,7 @@ long ListPushBack (List *lst, type_t value)
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
-    LOG_ERROR ("NO FREE SPACE\n");
+    fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
     return -1;
   }
 
@@ -175,7 +195,7 @@ long ListPushFront (List *lst, type_t value)
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
-    LOG_ERROR ("NO FREE SPACE\n");
+    fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
     return -1;
   }
 
@@ -203,7 +223,7 @@ type_t ListPopBack (List *lst, int *pop_err)
   if (lst->tail == 0)
   {
     fprintf (Log_file,
-            "<em style = \"color : red\">ERROR: ZERO ELEMENT POP</em>\n");
+             LOG_ERROR (ZERO ELEMENT POP) "\n");
     if (pop_err) *pop_err = POP_FIND_ERR;
     return POP_FIND_ERR;
   }
@@ -223,7 +243,7 @@ type_t ListPopBack (List *lst, int *pop_err)
   if (prev == -1)
   {
     fprintf (Log_file,
-            "<em style = \"color : red\">ERROR: NO ELEMENT FOUND:\n\
+             LOG_ERROR (NO ELEMENT FOUND) ":\n\
              expected next = %ld</em>\n",
              lst->tail);
     if (pop_err) *pop_err = POP_FIND_ERR;
@@ -247,7 +267,7 @@ type_t ListPopFront (List *lst, int *pop_err)
   if (lst->head == 0)
   {
     fprintf (Log_file,
-            "<em style = \"color : red\">ERROR: ZERO ELEMENT POP</em>\n");
+             LOG_ERROR (ZERO ELEMENT POP) "\n");
     if (pop_err) *pop_err = POP_FIND_ERR;
     return POP_FIND_ERR;
   }
@@ -272,6 +292,79 @@ type_t ListPopFront (List *lst, int *pop_err)
 
   LstDump (lst, 0, __FUNCTION__);
   return tmp;
+}
+
+type_t ListPop (List *lst, long place, int *pop_err)
+{
+  LstDump (lst, 0, __FUNCTION__);
+
+  if (lst->tail == 0)
+  {
+    fprintf (Log_file,
+             LOG_ERROR (ZERO ELEMENT POP) "\n");
+    if (pop_err) *pop_err = POP_FIND_ERR;
+    return POP_FIND_ERR;
+  }
+
+  long prev = FindByNext (lst, place);
+  if (prev == -1)
+  {
+    fprintf (Log_file,
+             LOG_ERROR (NO ELEMENT FOUND:) "\n\
+             expected next = %ld</em>\n",
+             lst->tail);
+    if (pop_err) *pop_err = POP_FIND_ERR;
+    return POP_FIND_ERR;
+  }
+
+  type_t tmp = lst->data[place];
+
+  lst->next[prev]  =  lst->next[place];
+  lst->next[place] =                -1;
+  lst->data[place] =                 0;
+
+  LstDump (lst, 0, __FUNCTION__);
+  return tmp;
+}
+
+int64_t ListResize (List *lst, long new_capacity)
+{
+    if (new_capacity <= 0) new_capacity = LIST_INIT_CAP;
+
+    size_t buff_len = (size_t)new_capacity * sizeof (type_t);
+
+    type_t *tmp_ptr = (type_t *) realloc (lst->data, buff_len);
+    if (!tmp_ptr)
+    {
+      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
+      return MEM_ALLOC_ERR;
+    }
+    lst->data = tmp_ptr;
+
+    tmp_ptr = (type_t *) realloc (lst->next, buff_len);
+    if (!tmp_ptr)
+    {
+      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
+      return MEM_ALLOC_ERR;
+    }
+    lst->next = tmp_ptr;
+
+    for (long iter = lst->capacity; iter < new_capacity; iter++)
+    {
+        lst->data[iter] =  0;
+        lst->next[iter] = -1;
+    }
+
+    lst->capacity = new_capacity;
+
+    #ifdef HASH_PROTECTION
+      GET_HASHES;
+      lst->list_hash =  lst_hash;
+      lst->data_hash = data_hash;
+      lst->next_hash = next_hash;
+    #endif
+
+    return OK;
 }
 
 int LstDtor (List *lst)
@@ -319,10 +412,12 @@ int64_t LstDump (List *lst, int64_t err, const char *called_from)
 
       #ifdef HASH_PROTECTION
         unsigned int lst_hash = MurmurHash (lst, (unsigned int) sizeof (List));
+        int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t));
+        unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);
+        unsigned int next_hash = MurmurHash (lst->next, lst_buff_len);
 
-        unsigned int data_hash = MurmurHash (lst->data, (int)((unsigned long)lst->capacity * sizeof (type_t)));
-
-        fprintf (Log_file, "\n\tlist_hash = %u;\n\texpected list_hash = %u;\n\tdata_hash = %u;\n\texpected data_hash = %u;",
+        fprintf (Log_file, "\n\tlist_hash = %u;\n\texpected list_hash = %u;\n\tdata_hash = %u;\n"
+                            "\texpected data_hash = %u;",
 			    lst_hash, lst->list_hash, data_hash, lst->data_hash);
       #endif
 

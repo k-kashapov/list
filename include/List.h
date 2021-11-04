@@ -9,6 +9,8 @@
 typedef int64_t type_t;
 #define _type_name "int64_t"
 
+const long LIST_INIT_CAP = 2;
+
 enum EXIT_CODES
 {
   OK              =  0,
@@ -49,8 +51,8 @@ enum EXIT_CODES
   #define LOG_PRINT(string) printf (string)
 #endif
 
-#define LOG_FATAL(string) fprintf(stderr, "\n----------------\n<em style = \"color : red\">FATAL: " string "</em>")
-#define LOG_ERROR(string) LOG_PRINT ("\n----\n<em style = \"color : red\">ERROR</em>: " string)
+#define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"src/fatal.jpg\" width = 150px>\nem style = \"color : red\">FATAL: " string "</em>")
+#define LOG_ERROR(string) "\n\n<img src = \"src/cat.jpg\" width = 150px>\n<em style = \"color : red\">ERROR: </em>" #string "\n"
 
 struct List
 {
@@ -67,7 +69,12 @@ struct List
   #endif
 };
 
-int LstInit (List *lst, long init_size = 2);
+#define GET_HASHES unsigned int lst_hash = MurmurHash (lst, (unsigned int) sizeof (List));   \
+                   int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t)); \
+                   unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);            \
+                   unsigned int next_hash = MurmurHash (lst->next, lst_buff_len)
+
+int LstInit (List *lst, long init_size = LIST_INIT_CAP);
 
 long FindByNext (List *lst, long key);
 
@@ -79,7 +86,11 @@ long ListPushFront (List *lst, type_t value);
 
 type_t ListPopBack (List *lst, int *pop_err = NULL);
 
-type_t ListPopFront (List *lst, int *pop_err);
+type_t ListPopFront (List *lst, int *pop_err = NULL);
+
+type_t ListPop (List *lst, long place, int *pop_err = NULL);
+
+int64_t ListResize (List *lst, long new_capacity);
 
 int LstDtor (List *lst);
 
