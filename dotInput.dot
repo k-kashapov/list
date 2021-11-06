@@ -2,7 +2,7 @@ digraph
 {
 rankdir = "LR";
 NODE0[shape=record, style = "rounded",label = "Data = 0|{ Position = 0|<f0> Next = 0|<f1> Prev = 0 }"]
-NODE1[shape=record, style = "rounded",label = "Data = 9|{ Position = 1|<f0> Next = 0|<f1> Prev = 0 }"]
+NODE1[shape=record, style = "rounded",label = "Data = 9|{ Position = 1|<f0> Next = 0|<f1> Prev = 3 }"]
 NODE2[shape=record, style = "rounded",label = "Data = 0|{ Position = 2|<f0> Next = 5|<f1> Prev = -1 }"]
 NODE3[shape=record, style = "rounded",label = "Data = 0|{ Position = 3|<f0> Next = 2|<f1> Prev = -1 }"]
 NODE4[shape=record, style = "rounded",label = "Data = 0|{ Position = 4|<f0> Next = 3|<f1> Prev = -1 }"]
@@ -11,10 +11,10 @@ NODE6[shape=record, style = "rounded",label = "Data = 0|{ Position = 6|<f0> Next
 NODE7[shape=record, style = "rounded",label = "Data = 0|{ Position = 7|<f0> Next = 8|<f1> Prev = -1 }"]
 NODE8[shape=record, style = "rounded",label = "Data = 0|{ Position = 8|<f0> Next = 9|<f1> Prev = -1 }"]
 NODE9[shape=record, style = "rounded",label = "Data = 0|{ Position = 9|<f0> Next = 0|<f1> Prev = -1 }"]
-NODE9->NODE0 [ style = invis, weight= 100 ];
+NODE9->NODE0 [style = invis, weight= 100];
 NODE0:<f0>->NODE0;
 NODE0:<f1>->NODE0;
-NODE0->NODE1 [ style = invis, weight= 100 ];
+NODE0->NODE1 [style = invis, weight= 100];
 NODE1:<f0>->NODE0;
 NODE1:<f1>->NODE0;
 

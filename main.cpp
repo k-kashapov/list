@@ -4,7 +4,7 @@ int main (int argc, const char **argv)
 {
   List lst = {};
 
-  LstInit (&lst, 10);
+  ListInit (&lst, 10);
 
   ListPushBack (&lst, 9);
   ListPushBack (&lst, 10);
@@ -15,6 +15,6 @@ int main (int argc, const char **argv)
   printf ("%ld\n", ListPopBack (&lst));
 
 
-  LstDtor (&lst);
+  ListDtor (&lst);
   return 0;
 }

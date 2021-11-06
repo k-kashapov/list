@@ -17,8 +17,14 @@ enum EXIT_CODES
   INVALID_INS_ARG       = -2,
   OPEN_FILE_FAIL        = -3,
   POP_FIND_ERR          = -4,
-  FREE_SPACE_NOT_LINKED = -5,
 };
+
+#define LST_ERR(name, code) name = code,
+enum LIST_STATES
+{
+  #include "lst_errs.h"
+};
+#undef LST_ERR
 
 #ifdef LIST_LOGS
   #define LOG_PRINT(string) fprintf (Log_file, string)
@@ -35,7 +41,12 @@ enum EXIT_CODES
                                   "}"                                           \
                                 "</style>"                                      \
                                 "<hr id = \"w" #width "\"></div>"
-  #define LIST_OK() LstDump (lst, 0, __FUNCTION__);
+
+  #define LIST_OK()                                                             \
+    {                                                                           \
+      int64_t err = ListOK (lst);                                               \
+      ListDump (lst, err, __FUNCTION__);                                        \
+    }
 #else
   #define LIST_OK()
   #define HLINE(width, height)
@@ -80,9 +91,9 @@ struct List
 };
 
 
-int LstInit (List *lst, long init_size = LIST_INIT_CAP);
+int ListInit (List *lst, long init_size = LIST_INIT_CAP);
 
-long FindByNext (List *lst, long key);
+long LogicalToPhysicalAddr (List *lst, long num);
 
 long ListInsert (List *lst, type_t value, long place = -1);
 
@@ -96,8 +107,10 @@ type_t ListPopFront (List *lst, int *pop_err = NULL);
 
 type_t ListPop (List *lst, long place, int *pop_err = NULL);
 
+int64_t ListOK (List *lst);
+
 int64_t ListResize (List *lst, long new_capacity);
 
-int LstDtor (List *lst);
+int ListDtor (List *lst);
 
-int64_t LstDump (List *lst, int64_t err, const char *called_from);
+int64_t ListDump (List *lst, int64_t err, const char *called_from);
