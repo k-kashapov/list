@@ -12,11 +12,11 @@ const long LIST_INIT_CAP = 2;
 
 enum EXIT_CODES
 {
-	OK					=  0,
-	MEM_ALLOC_ERR		= -1,
-	INVALID_INS_ARG		= -2,
-	OPEN_FILE_FAIL		= -3,
-	POP_FIND_ERR		= -4,
+	OK				=  0,
+	MEM_ALLOC_ERR	= -1,
+	INVALID_INS_ARG	= -2,
+	OPEN_FILE_FAIL	= -3,
+	POP_FIND_ERR	= -4,
 };
 
 #define LST_ERR(name, code) name = code,

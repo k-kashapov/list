@@ -32,14 +32,13 @@ int ListInit (List *lst, long init_size)
 		lst->prev[elem] = -1;
 	}
 
-	lst->next[0]			 = 0;
-	lst->prev[0]			 = 0;
-
-	lst->capacity = init_size;
-	lst->tail	 = 0;
-	lst->head	 = 0;
-	lst->size	 = 0;
-	lst->free	 = 1;
+	lst->next[0]	= 0;
+	lst->prev[0]	= 0;
+	lst->capacity	= init_size;
+	lst->tail	 	= 0;
+	lst->head	 	= 0;
+	lst->size	 	= 0;
+	lst->free	 	= 1;
 
 	LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
 	LIST_OK();
@@ -95,11 +94,11 @@ long ListInsert (List *lst, type_t value, long place)
 		ListResize (lst, lst->capacity);
 	}
 
-	lst->free		= lst->next[lst->free];
-	lst->data[dest]	= value;
-	lst->next[dest]	= lst->next[place];
-	lst->next[place] = dest;
-	lst->prev[dest]	= place;
+	lst->free			= lst->next[lst->free];
+	lst->data[dest]		= value;
+	lst->next[dest]		= lst->next[place];
+	lst->next[place] 	= dest;
+	lst->prev[dest]		= place;
 	lst->size++;
 
 	LIST_OK();
@@ -119,10 +118,10 @@ long ListPushBack (List *lst, type_t value)
 
 	if (lst->tail == 0)
 	{
-		lst->free		 = lst->next[lst->free];
-		lst->tail		 = dest;
-		lst->head		 = dest;
-		lst->data[dest] = value;
+		lst->free		= lst->next[lst->free];
+		lst->tail		= dest;
+		lst->head		= dest;
+		lst->data[dest]	= value;
 		lst->next[dest] = 0;
 		lst->prev[dest] = 0;
 		lst->size++;
@@ -130,12 +129,12 @@ long ListPushBack (List *lst, type_t value)
 		return dest;
 	}
 
-	lst->free			= lst->next[lst->free];
-	lst->data[dest]		= value;
-	lst->next[dest]		= 0;
-	lst->prev[dest]		= lst->tail;
-	lst->next[lst->tail] = dest;
-	lst->tail			= dest;
+	lst->free				= lst->next[lst->free];
+	lst->data[dest]			= value;
+	lst->next[dest]			= 0;
+	lst->prev[dest]			= lst->tail;
+	lst->next[lst->tail]	= dest;
+	lst->tail				= dest;
 	lst->size++;
 
 	LIST_OK();
@@ -153,9 +152,9 @@ long ListPushFront (List *lst, type_t value)
 
 	if (lst->tail == 0)
 	{
-		lst->free		 = lst->next[lst->free];
-		lst->tail		 = dest;
-		lst->head		 = dest;
+		lst->free		= lst->next[lst->free];
+		lst->tail		= dest;
+		lst->head		= dest;
 		lst->data[dest] = value;
 		lst->next[dest] = 0;
 		lst->prev[dest] = 0;
@@ -164,12 +163,12 @@ long ListPushFront (List *lst, type_t value)
 		return dest;
 	}
 
-	lst->free			= lst->next[lst->free];
-	lst->data[dest]		= value;
-	lst->next[dest]		= lst->head;
-	lst->prev[dest]		= 0;
-	lst->prev[lst->head] = dest;
-	lst->head			= dest;
+	lst->free				= lst->next[lst->free];
+	lst->data[dest]			= value;
+	lst->next[dest]			= lst->head;
+	lst->prev[dest]			= 0;
+	lst->prev[lst->head]	= dest;
+	lst->head				= dest;
 	lst->size++;
 
 	LIST_OK();
@@ -190,13 +189,13 @@ type_t ListPopBack (List *lst, int *pop_err)
 
 	if (lst->tail == lst->head)
 	{
-		type_t tmp			 = lst->data[lst->tail];
-		lst->next[lst->tail] = lst->free;
-		lst->free			 = lst->tail;
-		lst->prev[lst->tail] = -1;
-		lst->data[lst->tail] =	0;
-		lst->tail			 =	0;
-		lst->head			 =	0;
+		type_t tmp				= lst->data[lst->tail];
+		lst->next[lst->tail] 	= lst->free;
+		lst->free			 	= lst->tail;
+		lst->prev[lst->tail] 	= -1;
+		lst->data[lst->tail] 	= 0;
+		lst->tail			 	= 0;
+		lst->head			 	= 0;
 		lst->size--;
 
 		return tmp;
@@ -212,13 +211,13 @@ type_t ListPopBack (List *lst, int *pop_err)
 		return POP_FIND_ERR;
 	}
 
-	type_t tmp			 = lst->data[lst->tail];
-	lst->next[prev]		 =	0;
-	lst->next[lst->tail] = lst->free;
-	lst->free			 = lst->tail;
-	lst->prev[lst->tail] = -1;
-	lst->data[lst->tail] =	0;
-	lst->tail			 = prev;
+	type_t tmp				= lst->data[lst->tail];
+	lst->next[prev]			= 0;
+	lst->next[lst->tail]	= lst->free;
+	lst->free				= lst->tail;
+	lst->prev[lst->tail]	= -1;
+	lst->data[lst->tail]	= 0;
+	lst->tail				= prev;
 	lst->size--;
 
 	LIST_OK();
@@ -240,26 +239,26 @@ type_t ListPopFront (List *lst, int *pop_err)
 
 	if (lst->tail == lst->head)
 	{
-	type_t tmp = lst->data[lst->tail];
-	lst->next[lst->tail] = lst->free;
-	lst->free			= lst->tail;
-	lst->prev[lst->tail] = -1;
-	lst->data[lst->tail] =	0;
-	lst->tail			=	0;
-	lst->head			=	0;
-	lst->size--;
+		type_t tmp				= lst->data[lst->tail];
+		lst->next[lst->tail]	= lst->free;
+		lst->free				= lst->tail;
+		lst->prev[lst->tail]	= -1;
+		lst->data[lst->tail] 	= 0;
+		lst->tail				= 0;
+		lst->head				= 0;
+		lst->size--;
 
-	return tmp;
+		return tmp;
 	}
 
 	long next = lst->next[lst->head];
 
-	type_t tmp			 = lst->data[lst->head];
-	lst->data[lst->head] =	0;
-	lst->next[lst->head] = lst->free;
-	lst->free			 = lst->head;
-	lst->prev[lst->head] = -1;
-	lst->head			 = next;
+	type_t tmp				= lst->data[lst->head];
+	lst->data[lst->head]	= 0;
+	lst->next[lst->head]	= lst->free;
+	lst->free				= lst->head;
+	lst->prev[lst->head]	= -1;
+	lst->head				= next;
 	lst->size--;
 
 	LIST_OK();
@@ -300,7 +299,7 @@ type_t ListPop (List *lst, long place, int *pop_err)
 
 	type_t tmp = lst->data[place];
 
-	lst->next[lst->prev[place]] = lst->next[place];
+	lst->next[lst->prev[place]]	= lst->next[place];
 	lst->prev[lst->next[place]] = lst->prev[place];
 	lst->next[place]			= lst->free;
 	lst->free					= place;
