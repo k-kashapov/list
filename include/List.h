@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #define LIST_LOGS
-#define HASH_PROTECTION
 #define MAX_INFO
 
 typedef int64_t type_t;
@@ -13,11 +12,12 @@ const long LIST_INIT_CAP = 2;
 
 enum EXIT_CODES
 {
-  OK              =  0,
-  MEM_ALLOC_ERR   = -1,
-  INVALID_INS_ARG = -2,
-  OPEN_FILE_FAIL  = -3,
-  POP_FIND_ERR    = -4,
+  OK                    =  0,
+  MEM_ALLOC_ERR         = -1,
+  INVALID_INS_ARG       = -2,
+  OPEN_FILE_FAIL        = -3,
+  POP_FIND_ERR          = -4,
+  FREE_SPACE_NOT_LINKED = -5,
 };
 
 #ifdef LIST_LOGS
@@ -35,60 +35,48 @@ enum EXIT_CODES
                                   }\
                                 </style>\
                                 <hr id = \"w" #width "\"></div>"
-
-  #define POINTER(width) "<div style=\"\
-                              display: block;\
-                              position: relative;\
-                              border-right: 2px solid black;\
-                              margin-top: 0px;\
-                              height: 40px;\
-                              width: "#width"px;\
-                              \">\
-                          </div>"
+  #define LIST_OK() LstDump (lst, 0, __FUNCTION__);
 #else
+  #define LIST_OK()
   #define HLINE(width, height)
-  #define POINTER(width)
   #define LOG_PRINT(string) printf (string)
 #endif
 
 #define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"src/fatal.jpg\" width = 150px>\nem style = \"color : red\">FATAL: " string "</em>")
 #define LOG_ERROR(string) "\n\n<img src = \"src/cat.jpg\" width = 150px>\n<em style = \"color : red\">ERROR: </em>" #string "\n"
 
+#define REALLOC(arr, type, size)                                            \
+  {                                                                         \
+    printf ("allocation %lu bytes of %s; name = %s; pointer = %p\n",        \
+            (size_t) size * sizeof (type), #type, #arr, arr);               \
+    type *tmp_ptr = (type *) realloc (arr, sizeof (type) * (size_t)size);   \
+    if (!tmp_ptr)                                                           \
+    {                                                                       \
+      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");                               \
+      return MEM_ALLOC_ERR;                                                 \
+    }                                                                       \
+    arr = tmp_ptr;                                                          \
+    printf ("ptr after = %p\n", arr); \
+  }
+
 struct List
 {
   type_t *data;
   long *next;
+  long *prev;
   long head;
   long tail;
+  long free;
   long capacity;
-
-  #ifdef HASH_PROTECTION
-    unsigned int list_hash;
-    unsigned int data_hash;
-    unsigned int next_hash;
-  #endif
+  long size;
 };
 
-#ifdef HASH_PROTECTION
-  #define GET_HASHES  unsigned int list_len = (unsigned int) (sizeof (List) - 3 * sizeof (int)); \
-                      unsigned int lst_hash = MurmurHash (lst, list_len);                        \
-                      printf ("Just set: %u, func = %s\n", lst_hash, __FUNCTION__);\
-                      int lst_buff_len = (int)((unsigned long)lst->capacity * sizeof (type_t));  \
-                      unsigned int data_hash = MurmurHash (lst->data, lst_buff_len);             \
-                      unsigned int next_hash = MurmurHash (lst->next, lst_buff_len)
-
-  #define SET_HASHES  GET_HASHES;                   \
-                      lst->list_hash =  lst_hash;   \
-                      lst->data_hash = data_hash;   \
-                      lst->next_hash = next_hash
-#else
-  #define GET_HASHES ;
-  #define SET_HASHES ;
-#endif
 
 int LstInit (List *lst, long init_size = LIST_INIT_CAP);
 
 long FindByNext (List *lst, long key);
+
+long FindFree (List *lst);
 
 long ListInsert (List *lst, type_t value, long place = -1);
 
@@ -107,5 +95,3 @@ int64_t ListResize (List *lst, long new_capacity);
 int LstDtor (List *lst);
 
 int64_t LstDump (List *lst, int64_t err, const char *called_from);
-
-unsigned int MurmurHash (void *ptr, int len);

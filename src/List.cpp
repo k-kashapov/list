@@ -1,65 +1,13 @@
 #include "List.h"
 
-static FILE *Log_file = NULL;
-static FILE *Graph_file = NULL;
-
-static int OpenLogFile ()
-{
-  Log_file = fopen ("ListLog.html", "w");
-  if (!Log_file)
-  {
-    printf ("OPENING LOG FILE FAILED\n");
-    return OPEN_FILE_FAIL;
-  }
-  fprintf (Log_file, "<style>\
-                      table, th, td\
-                      {\
-                        border:1px solid black;\
-                        margin-left:100px;\
-                        margin-right:auto;\
-                        margin-top:1%%;\
-                        table-layout:fixed;\
-                        width:100px;\
-                        text-align:center;\
-                      }\
-                      rect\
-                      {\
-                        position: relative;\
-                        overflow: hidden;\
-                        border:1px solid black;\
-                        margin-left:100px;\
-                        margin-top:10px;\
-                        font-size:18px;\
-                        width:80px;\
-                        max-width:80px;\
-                        text-align:center;\
-                        display: inline-block;\
-                      }\
-                      </style>\
-                      <body>\
-                      <pre>");
-
-  Graph_file = fopen ("dotInput.dot", "w");
-  if (!Graph_file)
-  {
-    printf ("OPENING GRAPH FILE FAILED\n");
-    return OPEN_FILE_FAIL;
-  }
-  fprintf (Graph_file, "digraph\n{\n");
-  return OK;
-}
-
-static int CloseLogFile ()
-{
-  if (Log_file)
-  {
-    fprintf (Log_file, "</pre></body>");
-    fclose (Log_file);
-    Log_file = NULL;
-  }
-
-  return OK;
-}
+#ifdef LIST_LOGS
+  static int OpenLogFile ();
+  static int CloseLogFile ();
+  static FILE *Log_file = NULL;
+  static FILE *Graph_file = NULL;
+#else
+  static FILE *Log_file = stderr;
+#endif
 
 int LstInit (List *lst, long init_size)
 {
@@ -70,42 +18,28 @@ int LstInit (List *lst, long init_size)
 
   if (init_size < 2) init_size = 2;
 
-  type_t *data_mem = (type_t *) calloc ((size_t) init_size, sizeof (type_t));
-  if (!data_mem)
+  REALLOC (lst->data, type_t, init_size);
+  REALLOC (lst->next,   long, init_size);
+  REALLOC (lst->prev,   long, init_size);
+
+  for (long elem = 0; elem < init_size; elem++)
   {
-    LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
-    return MEM_ALLOC_ERR;
+    lst->data[elem] = 0;
+    lst->next[elem] = (elem + 1) % init_size;
+    lst->prev[elem] = -1;
   }
 
-  long *next_mem = (long *) calloc ((size_t) init_size, sizeof (long));
-  if (!next_mem)
-  {
-    LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
-    return MEM_ALLOC_ERR;
-  }
+  lst->next[0]             = 0;
+  lst->prev[0]             = 0;
 
-  for (long elem = 1; elem < init_size; elem++)
-  {
-    next_mem[elem] = -1;
-  }
-
-  lst->data     =  data_mem;
-  lst->next     =  next_mem;
   lst->capacity = init_size;
-  lst->tail     =         0;
-  lst->head     =         0;
-
-  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
-
-  SET_HASHES;
-
-  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+  lst->tail     = 0;
+  lst->head     = 0;
+  lst->size     = 0;
 
   LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
 
-  printf ("%s (%d) = %u\n", __FUNCTION__, __LINE__, MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
-  
   return OK;
 }
 
@@ -119,9 +53,25 @@ long FindByNext (List *lst, long key)
   return -1;
 }
 
+long FindFree (List *lst)
+{
+  long curr = lst->free;
+  for (long search = 0; search < lst->size; search++)
+  {
+    if (lst->next[curr] == 0)
+    {
+      fprintf (Log_file, LOG_ERROR (FREE SPACE IS NOT LINKED) "\n");
+      return
+    }
+    if (lst->prev[curr] == -1) return curr;
+    curr = lst->next[curr];
+  }
+  return -1;
+}
+
 long ListInsert (List *lst, type_t value, long place)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   if (place > lst->capacity)
   {
     fprintf (Log_file,
@@ -147,7 +97,7 @@ long ListInsert (List *lst, type_t value, long place)
              place);
     return INVALID_INS_ARG;
   }
-  else if (lst->next[place] == -1)
+  else if (lst->prev[place] == -1)
   {
     fprintf (Log_file,
              LOG_ERROR (INVALID INSERT ARG) "\nno elem at place = %ld\n",
@@ -157,24 +107,22 @@ long ListInsert (List *lst, type_t value, long place)
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
-    fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
-    return -1;
+    ListResize (lst, lst->capacity);
   }
 
   lst->data[dest]  = value;
   lst->next[dest]  = lst->next[place];
   lst->next[place] = dest;
+  lst->prev[dest]  = place;
 
-  SET_HASHES;
-
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
 
   return dest;
 }
 
 long ListPushBack (List *lst, type_t value)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
@@ -184,62 +132,58 @@ long ListPushBack (List *lst, type_t value)
 
   if (lst->tail == 0)
   {
-    lst->tail = dest;
-    lst->head = dest;
+    lst->tail       = dest;
+    lst->head       = dest;
     lst->data[dest] = value;
     lst->next[dest] = 0;
-
-    SET_HASHES;
+    lst->prev[dest] = 0;
 
     return dest;
   }
 
-  lst->data[dest] = value;
-  lst->next[dest] = 0;
+  lst->data[dest]      = value;
+  lst->next[dest]      = 0;
+  lst->prev[dest]      = lst->tail;
   lst->next[lst->tail] = dest;
-  lst->tail = dest;
+  lst->tail            = dest;
 
-  SET_HASHES;
 
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   return dest;
 }
 
 long ListPushFront (List *lst, type_t value)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   long dest = FindByNext (lst, -1);
   if (dest < 1)
   {
-    fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
     return -1;
   }
 
   if (lst->tail == 0)
   {
-    lst->tail = dest;
-    lst->head = dest;
+    lst->tail       = dest;
+    lst->head       = dest;
     lst->data[dest] = value;
     lst->next[dest] = 0;
-
-    SET_HASHES;
+    lst->prev[dest] = 0;
 
     return dest;
   }
 
   lst->data[dest] = value;
   lst->next[dest] = lst->head;
-  lst->head = dest;
+  lst->prev[dest] = 0;
+  lst->head       = dest;
 
-  SET_HASHES;
-
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   return dest;
 }
 
 type_t ListPopBack (List *lst, int *pop_err)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
 
   if (lst->tail == 0)
   {
@@ -251,13 +195,12 @@ type_t ListPopBack (List *lst, int *pop_err)
 
   if (lst->tail == lst->head)
   {
+    type_t tmp           = lst->data[lst->tail];
     lst->next[lst->tail] = -1;
-    type_t tmp = lst->data[lst->tail];
+    lst->prev[lst->tail] = -1;
     lst->data[lst->tail] =  0;
     lst->tail            =  0;
     lst->head            =  0;
-
-    SET_HASHES;
 
     return tmp;
   }
@@ -273,21 +216,21 @@ type_t ListPopBack (List *lst, int *pop_err)
     return POP_FIND_ERR;
   }
 
+  type_t tmp           = lst->data[lst->tail];
   lst->next[prev]      =  0;
   lst->next[lst->tail] = -1;
-  type_t tmp = lst->data[lst->tail];
+  lst->prev[lst->tail] = -1;
   lst->data[lst->tail] =  0;
-  lst->tail = prev;
+  lst->tail            = prev;
 
-  SET_HASHES;
+  LIST_OK();
 
-  LstDump (lst, 0, __FUNCTION__);
   return tmp;
 }
 
 type_t ListPopFront (List *lst, int *pop_err)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
 
   if (lst->head == 0)
   {
@@ -299,33 +242,31 @@ type_t ListPopFront (List *lst, int *pop_err)
 
   if (lst->tail == lst->head)
   {
-    lst->next[lst->tail] = -1;
     type_t tmp = lst->data[lst->tail];
+    lst->next[lst->tail] = -1;
+    lst->prev[lst->tail] = -1;
     lst->data[lst->tail] =  0;
     lst->tail            =  0;
     lst->head            =  0;
-
-    SET_HASHES;
 
     return tmp;
   }
 
   long next = lst->next[lst->head];
 
-  type_t tmp = lst->data[lst->head];
-  lst->data[lst->tail] =  0;
+  type_t tmp           = lst->data[lst->head];
+  lst->data[lst->head] =  0;
   lst->next[lst->head] = -1;
-  lst->tail = next;
+  lst->prev[lst->head] = -1;
+  lst->head            = next;
 
-  SET_HASHES;
-
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   return tmp;
 }
 
 type_t ListPop (List *lst, long place, int *pop_err)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
 
   if (lst->tail == 0)
   {
@@ -348,13 +289,13 @@ type_t ListPop (List *lst, long place, int *pop_err)
 
   type_t tmp = lst->data[place];
 
-  lst->next[prev]  =  lst->next[place];
-  lst->next[place] =                -1;
-  lst->data[place] =                 0;
+  lst->next[lst->prev[place]] = lst->next[place];
+  lst->prev[lst->next[place]] = lst->prev[place];
+  lst->next[place]            = -1;
+  lst->prev[place]            = -1;
+  lst->data[place]            = 0;
 
-  SET_HASHES;
-
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   return tmp;
 }
 
@@ -362,34 +303,25 @@ int64_t ListResize (List *lst, long new_capacity)
 {
     if (new_capacity <= 0) new_capacity = LIST_INIT_CAP;
 
-    size_t buff_len = (size_t)new_capacity * sizeof (type_t);
+    long buff_len = new_capacity * (long) sizeof (type_t);
 
-    type_t *tmp_ptr = (type_t *) realloc (lst->data, buff_len);
-    if (!tmp_ptr)
-    {
-      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
-      return MEM_ALLOC_ERR;
-    }
-    lst->data = tmp_ptr;
+    REALLOC (lst->data, type_t, buff_len);
+    REALLOC (lst->next,   long, buff_len);
+    REALLOC (lst->prev,   long, buff_len);
 
-    tmp_ptr = (type_t *) realloc (lst->next, buff_len);
-    if (!tmp_ptr)
-    {
-      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");
-      return MEM_ALLOC_ERR;
-    }
-    lst->next = tmp_ptr;
-
-    for (long iter = lst->capacity; iter < new_capacity; iter++)
+    for (long iter = lst->capacity; iter < new_capacity - 1; iter++)
     {
         lst->data[iter] =  0;
-        lst->next[iter] = -1;
+        lst->next[iter] = iter + 1;
+        lst->prev[iter] = -1;
     }
+
+    lst->next[new_capacity - 1] = 0;
 
     lst->capacity = new_capacity;
 
     #ifdef HASH_PROTECTION
-      SET_HASHES;
+
     #endif
 
     return OK;
@@ -397,7 +329,7 @@ int64_t ListResize (List *lst, long new_capacity)
 
 int LstDtor (List *lst)
 {
-  LstDump (lst, 0, __FUNCTION__);
+  LIST_OK();
   LOG_PRINT ("<em style = \"color : #16c95e\">List destructed</em>\n");
 
   #ifdef LIST_LOGS
@@ -419,119 +351,150 @@ int LstDtor (List *lst)
   return OK;
 }
 
-int64_t LstDump (List *lst, int64_t err, const char *called_from)
-{
-  #ifdef LIST_LOGS
-    if (!Log_file) return -1;
-
-    const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
-                                   "<em style = \"color : #00FA9A\">ok</em>";
-    fprintf (Log_file, "[%s] [%s] List &#60%s&#62 [&%p] %s ; called from %s\n",\
-                 __DATE__, __TIME__, _type_name, lst, err_string, called_from);
-
-    #ifdef MAX_INFO
-        if (1)
-    #else
-        if (err)
-    #endif
+#ifdef LIST_LOGS
+  static int OpenLogFile ()
+  {
+    Log_file = fopen ("ListLog.html", "w");
+    if (!Log_file)
     {
-      fprintf (Log_file, "<pre>{\n\tcapacity = %ld;\n\tsize = %ld;",\
-               lst->capacity, (lst->tail - lst->head + lst->capacity) % lst->capacity);
+      printf ("OPENING LOG FILE FAILED\n");
+      return OPEN_FILE_FAIL;
+    }
+    fprintf (Log_file, "<style>\
+                        table, th, td\
+                        {\
+                          border:1px solid black;\
+                          margin-left:100px;\
+                          margin-right:auto;\
+                          margin-top:1%%;\
+                          table-layout:fixed;\
+                          width:100px;\
+                          text-align:center;\
+                        }\
+                        rect\
+                        {\
+                          position: relative;\
+                          overflow: hidden;\
+                          border:1px solid black;\
+                          margin-left:100px;\
+                          margin-top:10px;\
+                          font-size:18px;\
+                          width:80px;\
+                          max-width:80px;\
+                          text-align:center;\
+                          display: inline-block;\
+                        }\
+                        </style>\
+                        <body>\
+                        <pre>");
 
-      #ifdef HASH_PROTECTION
-        GET_HASHES;
+    return OK;
+  }
 
-        printf ("437 = %u\n", MurmurHash (lst, sizeof (List)));
-        printf ("438 = %u\n", MurmurHash (lst, sizeof (List) - 3 * sizeof (int)));
+  static int CloseLogFile ()
+  {
+    if (Log_file)
+    {
+      fprintf (Log_file, "</pre></body>");
+      fclose (Log_file);
+      Log_file = NULL;
+    }
 
-        fprintf (Log_file,  "\n\tlistddd_hash = %3u;\n\texpected list_hash = %3u;\n"
-                            "\tdata_hash = %u;\n\texpected data_hash = %u;",
-			                      lst_hash, lst->list_hash, data_hash, lst->data_hash);
+    return OK;
+  }
+
+  int64_t LstDump (List *lst, int64_t err, const char *called_from)
+  {
+    #ifdef LIST_LOGS
+      if (!Log_file) return -1;
+
+      Graph_file = fopen ("dotInput.dot", "w");
+      if (!Graph_file)
+      {
+        printf ("OPENING GRAPH FILE FAILED\n");
+        return OPEN_FILE_FAIL;
+      }
+      fprintf (Graph_file, "digraph\n{\nrankdir = \"LR\";\n");
+
+      const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
+                                     "<em style = \"color : #00FA9A\">ok</em>";
+      fprintf (Log_file, "[%s] [%s] List &#60%s&#62 [&%p] %s ; called from %s\n",\
+                   __DATE__, __TIME__, _type_name, lst, err_string, called_from);
+
+      #ifdef MAX_INFO
+          if (1)
+      #else
+          if (err)
       #endif
-
-      if (!lst->data)
       {
-          fprintf (Log_file, "\t}\n}\n </pre>");
-          return err;
+        fprintf (Log_file, "<pre>{\n\tcapacity = %ld;\n\tsize = %ld;",\
+                 lst->capacity, (lst->tail - lst->head + lst->capacity) % lst->capacity);
+
+        if (!lst->data)
+        {
+            fprintf (Log_file, "\t}\n}\n </pre>");
+            return err;
+        }
+
+        fprintf (Log_file, "<table> <tr> <th>Position</th>");
+
+        for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
+        {
+          fprintf (Log_file, "<th>%4ld</th>", data_iter);
+          fprintf (Graph_file, "NODE%ld[shape=record, style = \"rounded\","
+                   "label = \""
+                   "Data = %ld|"
+                   "{ Position = %ld|"
+                   "<f0> Next = %ld|"
+                   "<f1> Prev = %ld }\""
+                   "]\n",
+                   data_iter, lst->data[data_iter], data_iter,
+                   lst->next[data_iter], lst->prev[data_iter]);
+        }
+
+        fprintf (Log_file, "</tr> <tr> <td>Data</td>");
+
+        for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
+        {
+          fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
+          if (lst->next[data_iter] >= 0)
+          {
+            fprintf (Graph_file, "NODE%ld->NODE%ld [ style = invis, weight= 100 ];\n"
+                                 "NODE%ld:<f0>->NODE%ld;\n"
+                                 "NODE%ld:<f1>->NODE%d;\n",
+                                  (data_iter - 1 + lst->capacity) % lst->capacity, data_iter, data_iter, lst->next[data_iter], data_iter, 0);
+          }
+        }
+
+        fprintf (Log_file, "</tr> <tr> <td>Next</td>");
+
+        for (long next_iter = 0; next_iter < lst->capacity; next_iter++)
+        {
+          fprintf (Log_file, "<td>%4ld</td>", lst->next[next_iter]);
+        }
+
+        fprintf (Log_file, "</tr> <tr> <td>Prev</td>");
+
+        for (long prev_iter = 0; prev_iter < lst->capacity; prev_iter++)
+        {
+          fprintf (Log_file, "<td>%4ld</td>", lst->prev[prev_iter]);
+        }
+
+        fprintf (Log_file, "</tr></table>\n");
+
+        fprintf (Log_file,  "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\n\n"
+                            "<rect>Free\n%ld</rect>\n\n"
+                            "\n}</pre>", lst->head, lst->tail, lst->free);
+
+        fprintf (Log_file, HLINE (900, 0) "\n");
+
+        fprintf (Graph_file, "\n}");
+        fclose (Graph_file);
+
+        system ("dot dotInput.dot -Tpng -o Img.png");
       }
+    #endif
 
-      fprintf (Log_file, "<table> <tr> <th>Position</th>");
-
-      for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
-      {
-        fprintf (Log_file, "<th>%4ld</th>", data_iter);
-      }
-
-      fprintf (Log_file, "</tr> <tr> <td>Data</td>");
-
-      for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
-      {
-        fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
-      }
-
-      fprintf (Log_file, "</tr> <tr> <td>Next</td>");
-
-      for (long next_iter = 0; next_iter < lst->capacity; next_iter++)
-      {
-        fprintf (Log_file, "<td>%4ld</td>", lst->next[next_iter]);
-      }
-
-      fprintf (Log_file, "</tr></table>\n"); //TODO LOG VERTICAL LINE
-
-      fprintf (Log_file, "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\
-                          \n}</pre>", lst->head, lst->tail);
-
-      fprintf (Log_file, HLINE (900, 0) "\n");
-    }
-  #endif
-
-  return 0;
-}
-
-unsigned int MurmurHash (void *ptr, int len)
-{
-    if (!ptr) return 0;
-
-    const unsigned int m = 0x5bd1e995;
-    const unsigned int seed = 0;
-    const int r = 24;
-    unsigned int h = seed ^ len;
-
-    const unsigned char * data = (const unsigned char *)ptr;
-    unsigned int k = 0;
-
-    while (len >= 4)
-    {
-        k  = data[0];
-        k |= data[1] << 8;
-        k |= data[2] << 16;
-        k |= data[3] << 24;
-
-        k *= m;
-        k ^= k >> r;
-        k *= m;
-
-        h *= m;
-        h ^= k;
-
-        data += 4;
-        len -= 4;
-    }
-
-    switch (len)
-    {
-    case 3:
-        h ^= data[2] << 16;
-    case 2:
-        h ^= data[1] << 8;
-    case 1:
-        h ^= data[0];
-        h *= m;
-    };
-
-    h ^= h >> 13;
-    h *= m;
-    h ^= h >> 15;
-
-    return h;
-}
+    return 0;
+  }
+#endif
