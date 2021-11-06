@@ -22,19 +22,19 @@ enum EXIT_CODES
 
 #ifdef LIST_LOGS
   #define LOG_PRINT(string) fprintf (Log_file, string)
-  #define HLINE(width, height) "<div><style scoped>\
-                                  hr#w" #width "\
-                                  {\
-                                    display: inline-block;\
-                                    position: relative;\
-                                    margin-top: -"#height"px;\
-                                    margin-left: -240px;\
-                                    border-style: inset;\
-                                    border-width: 1px;\
-                                    width: " #width "px;\
-                                  }\
-                                </style>\
-                                <hr id = \"w" #width "\"></div>"
+  #define HLINE(width, height) "<div><style scoped>"                            \
+                                  "hr#w" #width                                 \
+                                  "{"                                           \
+                                    "display: inline-block;"                    \
+                                    "position: relative;"                       \
+                                    "margin-top: -"#height"px;"                 \
+                                    "margin-left: -240px;"                      \
+                                    "border-style: inset;"                      \
+                                    "border-width: 1px;"                        \
+                                    "width: " #width "px;"                      \
+                                  "}"                                           \
+                                "</style>"                                      \
+                                "<hr id = \"w" #width "\"></div>"
   #define LIST_OK() LstDump (lst, 0, __FUNCTION__);
 #else
   #define LIST_OK()
@@ -42,21 +42,29 @@ enum EXIT_CODES
   #define LOG_PRINT(string) printf (string)
 #endif
 
-#define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"src/fatal.jpg\" width = 150px>\nem style = \"color : red\">FATAL: " string "</em>")
-#define LOG_ERROR(string) "\n\n<img src = \"src/cat.jpg\" width = 150px>\n<em style = \"color : red\">ERROR: </em>" #string "\n"
+#define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"img/fatal.jpg\""  \
+                                           "width = 150px>\nem style = \"color:"\
+                                           "red\">FATAL: " string "</em>")
+#define LOG_ERROR(string) "\n\n<img src = \"img/cat.jpg\" width = 150px>\n"     \
+                          "<em style = \"color : red\">ERROR: </em>"            \
+                          #string "\n" HLINE (1000, 0)                          \
 
-#define REALLOC(arr, type, size)                                            \
-  {                                                                         \
-    printf ("allocation %lu bytes of %s; name = %s; pointer = %p\n",        \
-            (size_t) size * sizeof (type), #type, #arr, arr);               \
-    type *tmp_ptr = (type *) realloc (arr, sizeof (type) * (size_t)size);   \
-    if (!tmp_ptr)                                                           \
-    {                                                                       \
-      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");                               \
-      return MEM_ALLOC_ERR;                                                 \
-    }                                                                       \
-    arr = tmp_ptr;                                                          \
-    printf ("ptr after = %p\n", arr); \
+#define REALLOC(arr, type, size)                                                \
+  {                                                                             \
+    type *tmp_ptr = (type *) realloc (arr, sizeof (type) * (size_t)size);       \
+    if (!tmp_ptr)                                                               \
+    {                                                                           \
+      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");                                   \
+      return MEM_ALLOC_ERR;                                                     \
+    }                                                                           \
+    arr = tmp_ptr;                                                              \
+  }
+
+#define KILL_PTR(ptr, type)                                                     \
+  if (ptr)                                                                      \
+  {                                                                             \
+    free (ptr);                                                                 \
+    ptr = (type *)POISON;                                                       \
   }
 
 struct List
@@ -75,8 +83,6 @@ struct List
 int LstInit (List *lst, long init_size = LIST_INIT_CAP);
 
 long FindByNext (List *lst, long key);
-
-long FindFree (List *lst);
 
 long ListInsert (List *lst, type_t value, long place = -1);
 

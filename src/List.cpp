@@ -5,9 +5,12 @@
   static int CloseLogFile ();
   static FILE *Log_file = NULL;
   static FILE *Graph_file = NULL;
+  static int  GRAPH_NUM = 0;
 #else
   static FILE *Log_file = stderr;
 #endif
+
+const int POISON = 0x42;
 
 int LstInit (List *lst, long init_size)
 {
@@ -36,6 +39,7 @@ int LstInit (List *lst, long init_size)
   lst->tail     = 0;
   lst->head     = 0;
   lst->size     = 0;
+  lst->free     = 1;
 
   LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
   LIST_OK();
@@ -49,22 +53,6 @@ long FindByNext (List *lst, long key)
   {
     if (lst->next[elem] == key)
       return elem;
-  }
-  return -1;
-}
-
-long FindFree (List *lst)
-{
-  long curr = lst->free;
-  for (long search = 0; search < lst->size; search++)
-  {
-    if (lst->next[curr] == 0)
-    {
-      fprintf (Log_file, LOG_ERROR (FREE SPACE IS NOT LINKED) "\n");
-      return
-    }
-    if (lst->prev[curr] == -1) return curr;
-    curr = lst->next[curr];
   }
   return -1;
 }
@@ -86,9 +74,9 @@ long ListInsert (List *lst, type_t value, long place)
              LOG_ERROR (INVALID INSERT) "\ninsert after 0 elem!\n");
     return INVALID_INS_ARG;
   }
-  else if (place == -1)
+  else if (place == -1 || place == lst->tail)
   {
-    place = lst->tail;
+    return ListPushBack (lst, value);
   }
   else if (place < 0)
   {
@@ -104,12 +92,13 @@ long ListInsert (List *lst, type_t value, long place)
              place);
   }
 
-  long dest = FindByNext (lst, -1);
+  long dest = lst->free;
   if (dest < 1)
   {
     ListResize (lst, lst->capacity);
   }
 
+  lst->free        = lst->next[lst->free];
   lst->data[dest]  = value;
   lst->next[dest]  = lst->next[place];
   lst->next[place] = dest;
@@ -123,7 +112,7 @@ long ListInsert (List *lst, type_t value, long place)
 long ListPushBack (List *lst, type_t value)
 {
   LIST_OK();
-  long dest = FindByNext (lst, -1);
+  long dest = lst->free;
   if (dest < 1)
   {
     fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
@@ -132,6 +121,7 @@ long ListPushBack (List *lst, type_t value)
 
   if (lst->tail == 0)
   {
+    lst->free       = lst->next[lst->free];
     lst->tail       = dest;
     lst->head       = dest;
     lst->data[dest] = value;
@@ -141,12 +131,12 @@ long ListPushBack (List *lst, type_t value)
     return dest;
   }
 
+  lst->free            = lst->next[lst->free];
   lst->data[dest]      = value;
   lst->next[dest]      = 0;
   lst->prev[dest]      = lst->tail;
   lst->next[lst->tail] = dest;
   lst->tail            = dest;
-
 
   LIST_OK();
   return dest;
@@ -155,7 +145,7 @@ long ListPushBack (List *lst, type_t value)
 long ListPushFront (List *lst, type_t value)
 {
   LIST_OK();
-  long dest = FindByNext (lst, -1);
+  long dest = lst->free;
   if (dest < 1)
   {
     return -1;
@@ -163,6 +153,7 @@ long ListPushFront (List *lst, type_t value)
 
   if (lst->tail == 0)
   {
+    lst->free       = lst->next[lst->free];
     lst->tail       = dest;
     lst->head       = dest;
     lst->data[dest] = value;
@@ -172,6 +163,7 @@ long ListPushFront (List *lst, type_t value)
     return dest;
   }
 
+  lst->free       = lst->next[lst->free];
   lst->data[dest] = value;
   lst->next[dest] = lst->head;
   lst->prev[dest] = 0;
@@ -196,7 +188,8 @@ type_t ListPopBack (List *lst, int *pop_err)
   if (lst->tail == lst->head)
   {
     type_t tmp           = lst->data[lst->tail];
-    lst->next[lst->tail] = -1;
+    lst->next[lst->tail] = lst->free;
+    lst->free            = lst->tail;
     lst->prev[lst->tail] = -1;
     lst->data[lst->tail] =  0;
     lst->tail            =  0;
@@ -205,12 +198,11 @@ type_t ListPopBack (List *lst, int *pop_err)
     return tmp;
   }
 
-  long prev = FindByNext (lst, lst->tail);
+  long prev = lst->prev[lst->tail];
   if (prev == -1)
   {
     fprintf (Log_file,
-             LOG_ERROR (NO ELEMENT FOUND) ":\n\
-             expected next = %ld</em>\n",
+             LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n),
              lst->tail);
     if (pop_err) *pop_err = POP_FIND_ERR;
     return POP_FIND_ERR;
@@ -218,7 +210,8 @@ type_t ListPopBack (List *lst, int *pop_err)
 
   type_t tmp           = lst->data[lst->tail];
   lst->next[prev]      =  0;
-  lst->next[lst->tail] = -1;
+  lst->next[lst->tail] = lst->free;
+  lst->free            = lst->tail;
   lst->prev[lst->tail] = -1;
   lst->data[lst->tail] =  0;
   lst->tail            = prev;
@@ -243,7 +236,8 @@ type_t ListPopFront (List *lst, int *pop_err)
   if (lst->tail == lst->head)
   {
     type_t tmp = lst->data[lst->tail];
-    lst->next[lst->tail] = -1;
+    lst->next[lst->tail] = lst->free;
+    lst->free            = lst->tail;
     lst->prev[lst->tail] = -1;
     lst->data[lst->tail] =  0;
     lst->tail            =  0;
@@ -256,7 +250,8 @@ type_t ListPopFront (List *lst, int *pop_err)
 
   type_t tmp           = lst->data[lst->head];
   lst->data[lst->head] =  0;
-  lst->next[lst->head] = -1;
+  lst->next[lst->head] = lst->free;
+  lst->free            = lst->head;
   lst->prev[lst->head] = -1;
   lst->head            = next;
 
@@ -276,12 +271,21 @@ type_t ListPop (List *lst, long place, int *pop_err)
     return POP_FIND_ERR;
   }
 
-  long prev = FindByNext (lst, place);
+  if (place == lst->head)
+  {
+    return ListPopFront (lst, pop_err);
+  }
+
+  if (place == lst->tail)
+  {
+    return ListPopBack (lst, pop_err);
+  }
+
+  long prev = lst->prev[place];
   if (prev == -1)
   {
     fprintf (Log_file,
-             LOG_ERROR (NO ELEMENT FOUND:) "\n\
-             expected next = %ld</em>\n",
+             LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n),
              lst->tail);
     if (pop_err) *pop_err = POP_FIND_ERR;
     return POP_FIND_ERR;
@@ -291,7 +295,8 @@ type_t ListPop (List *lst, long place, int *pop_err)
 
   lst->next[lst->prev[place]] = lst->next[place];
   lst->prev[lst->next[place]] = lst->prev[place];
-  lst->next[place]            = -1;
+  lst->next[place]            = lst->free;
+  lst->free                   = place;
   lst->prev[place]            = -1;
   lst->data[place]            = 0;
 
@@ -348,6 +353,12 @@ int LstDtor (List *lst)
     lst->next = NULL;
   }
 
+  if (lst->prev)
+  {
+    free (lst->prev);
+    lst->prev = NULL;
+  }
+
   return OK;
 }
 
@@ -364,6 +375,7 @@ int LstDtor (List *lst)
                         table, th, td\
                         {\
                           border:1px solid black;\
+                          border-radius:6px;\
                           margin-left:100px;\
                           margin-right:auto;\
                           margin-top:1%%;\
@@ -376,6 +388,7 @@ int LstDtor (List *lst)
                           position: relative;\
                           overflow: hidden;\
                           border:1px solid black;\
+                          border-radius:6px;\
                           margin-left:100px;\
                           margin-top:10px;\
                           font-size:18px;\
@@ -457,7 +470,7 @@ int LstDtor (List *lst)
         for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
         {
           fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
-          if (lst->next[data_iter] >= 0)
+          if (lst->prev[data_iter] >= 0)
           {
             fprintf (Graph_file, "NODE%ld->NODE%ld [ style = invis, weight= 100 ];\n"
                                  "NODE%ld:<f0>->NODE%ld;\n"
@@ -486,12 +499,20 @@ int LstDtor (List *lst)
                             "<rect>Free\n%ld</rect>\n\n"
                             "\n}</pre>", lst->head, lst->tail, lst->free);
 
-        fprintf (Log_file, HLINE (900, 0) "\n");
-
         fprintf (Graph_file, "\n}");
         fclose (Graph_file);
 
-        system ("dot dotInput.dot -Tpng -o Img.png");
+        char sys_command[43] = {};
+        snprintf (sys_command, 43, "%s%d%s",
+                                   "dot dotInput.dot -Tpng -o img/Img",
+                                   GRAPH_NUM,
+                                   ".png");
+
+        system (sys_command);
+
+        fprintf (Log_file, "\n<img src = \"img/Img%d.png\" width = 1000px>\n", GRAPH_NUM);
+        GRAPH_NUM++;
+        fprintf (Log_file, HLINE (1000, 0) "\n");
       }
     #endif
 

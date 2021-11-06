@@ -2,10 +2,10 @@ digraph
 {
 rankdir = "LR";
 NODE0[shape=record, style = "rounded",label = "Data = 0|{ Position = 0|<f0> Next = 0|<f1> Prev = 0 }"]
-NODE1[shape=record, style = "rounded",label = "Data = 0|{ Position = 1|<f0> Next = 2|<f1> Prev = -1 }"]
-NODE2[shape=record, style = "rounded",label = "Data = 0|{ Position = 2|<f0> Next = 3|<f1> Prev = -1 }"]
-NODE3[shape=record, style = "rounded",label = "Data = 0|{ Position = 3|<f0> Next = 4|<f1> Prev = -1 }"]
-NODE4[shape=record, style = "rounded",label = "Data = 0|{ Position = 4|<f0> Next = 5|<f1> Prev = -1 }"]
+NODE1[shape=record, style = "rounded",label = "Data = 9|{ Position = 1|<f0> Next = 0|<f1> Prev = 0 }"]
+NODE2[shape=record, style = "rounded",label = "Data = 0|{ Position = 2|<f0> Next = 5|<f1> Prev = -1 }"]
+NODE3[shape=record, style = "rounded",label = "Data = 0|{ Position = 3|<f0> Next = 2|<f1> Prev = -1 }"]
+NODE4[shape=record, style = "rounded",label = "Data = 0|{ Position = 4|<f0> Next = 3|<f1> Prev = -1 }"]
 NODE5[shape=record, style = "rounded",label = "Data = 0|{ Position = 5|<f0> Next = 6|<f1> Prev = -1 }"]
 NODE6[shape=record, style = "rounded",label = "Data = 0|{ Position = 6|<f0> Next = 7|<f1> Prev = -1 }"]
 NODE7[shape=record, style = "rounded",label = "Data = 0|{ Position = 7|<f0> Next = 8|<f1> Prev = -1 }"]
@@ -15,31 +15,7 @@ NODE9->NODE0 [ style = invis, weight= 100 ];
 NODE0:<f0>->NODE0;
 NODE0:<f1>->NODE0;
 NODE0->NODE1 [ style = invis, weight= 100 ];
-NODE1:<f0>->NODE2;
+NODE1:<f0>->NODE0;
 NODE1:<f1>->NODE0;
-NODE1->NODE2 [ style = invis, weight= 100 ];
-NODE2:<f0>->NODE3;
-NODE2:<f1>->NODE0;
-NODE2->NODE3 [ style = invis, weight= 100 ];
-NODE3:<f0>->NODE4;
-NODE3:<f1>->NODE0;
-NODE3->NODE4 [ style = invis, weight= 100 ];
-NODE4:<f0>->NODE5;
-NODE4:<f1>->NODE0;
-NODE4->NODE5 [ style = invis, weight= 100 ];
-NODE5:<f0>->NODE6;
-NODE5:<f1>->NODE0;
-NODE5->NODE6 [ style = invis, weight= 100 ];
-NODE6:<f0>->NODE7;
-NODE6:<f1>->NODE0;
-NODE6->NODE7 [ style = invis, weight= 100 ];
-NODE7:<f0>->NODE8;
-NODE7:<f1>->NODE0;
-NODE7->NODE8 [ style = invis, weight= 100 ];
-NODE8:<f0>->NODE9;
-NODE8:<f1>->NODE0;
-NODE8->NODE9 [ style = invis, weight= 100 ];
-NODE9:<f0>->NODE0;
-NODE9:<f1>->NODE0;
 
 }
