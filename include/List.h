@@ -12,82 +12,84 @@ const long LIST_INIT_CAP = 2;
 
 enum EXIT_CODES
 {
-  OK                    =  0,
-  MEM_ALLOC_ERR         = -1,
-  INVALID_INS_ARG       = -2,
-  OPEN_FILE_FAIL        = -3,
-  POP_FIND_ERR          = -4,
+	OK					=  0,
+	MEM_ALLOC_ERR		= -1,
+	INVALID_INS_ARG		= -2,
+	OPEN_FILE_FAIL		= -3,
+	POP_FIND_ERR		= -4,
 };
 
 #define LST_ERR(name, code) name = code,
 enum LIST_STATES
 {
-  #include "lst_errs.h"
+	#include "lst_errs.h"
 };
 #undef LST_ERR
 
 #ifdef LIST_LOGS
-  #define LOG_PRINT(string) fprintf (Log_file, string)
-  #define HLINE(width, height) "<div><style scoped>"                            \
-                                  "hr#w" #width                                 \
-                                  "{"                                           \
-                                    "display: inline-block;"                    \
-                                    "position: relative;"                       \
-                                    "margin-top: -"#height"px;"                 \
-                                    "margin-left: -240px;"                      \
-                                    "border-style: inset;"                      \
-                                    "border-width: 1px;"                        \
-                                    "width: " #width "px;"                      \
-                                  "}"                                           \
-                                "</style>"                                      \
-                                "<hr id = \"w" #width "\"></div>"
+	#define LOG_PRINT(string) fprintf (Log_file, string)
+	#define HLINE(width, height)	"<div><style scoped>"						\
+										"hr#w" #width							\
+										"{"										\
+										"display: inline-block;"				\
+										"position: relative;"				 	\
+										"margin-top: -"#height"px;"			 	\
+										"margin-left: -240px;"					\
+										"border-style: inset;"					\
+										"border-width: 1px;"					\
+										"width: " #width "px;"					\
+										"}"										\
+									"</style>"									\
+									"<hr id = \"w" #width "\"></div>"
 
-  #define LIST_OK()                                                             \
-    {                                                                           \
-      int64_t err = ListOK (lst);                                               \
-      ListDump (lst, err, __FUNCTION__);                                        \
-    }
+	#define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"img/fatal.jpg\""		\
+												 "width = 150px>\nem style = \"color:"	\
+												 "red\">FATAL: " string "</em>")
+
+	#define LOG_ERROR(string)	"\n\n<img src = \"img/cat.jpg\" width = 150px>\n"	 	\
+								"<em style = \"color : red\">ERROR: </em>"				\
+								#string "\n" HLINE (1000, 0)							\
+
+	#define LIST_OK()															\
+	{																			\
+		int64_t err = ListOK (lst);												\
+		ListDump (lst, err, __FUNCTION__);										\
+	}
 #else
-  #define LIST_OK()
-  #define HLINE(width, height)
-  #define LOG_PRINT(string) printf (string)
+	#define LIST_OK()
+	#define HLINE(width, height)
+	#define LOG_PRINT(string)
 #endif
 
-#define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"img/fatal.jpg\""  \
-                                           "width = 150px>\nem style = \"color:"\
-                                           "red\">FATAL: " string "</em>")
-#define LOG_ERROR(string) "\n\n<img src = \"img/cat.jpg\" width = 150px>\n"     \
-                          "<em style = \"color : red\">ERROR: </em>"            \
-                          #string "\n" HLINE (1000, 0)                          \
 
-#define REALLOC(arr, type, size)                                                \
-  {                                                                             \
-    type *tmp_ptr = (type *) realloc (arr, sizeof (type) * (size_t)size);       \
-    if (!tmp_ptr)                                                               \
-    {                                                                           \
-      LOG_FATAL ("ALLOCATING MEMORY FAIL\n");                                   \
-      return MEM_ALLOC_ERR;                                                     \
-    }                                                                           \
-    arr = tmp_ptr;                                                              \
-  }
+#define REALLOC(arr, type, size)												\
+	{																			\
+		type *tmp_ptr = (type *) realloc (arr, sizeof (type) * (size_t)size);	\
+		if (!tmp_ptr)															\
+		{																		\
+			LOG_FATAL ("ALLOCATING MEMORY FAIL\n");								\
+			return MEM_ALLOC_ERR;												\
+		}																		\
+		arr = tmp_ptr;															\
+	}
 
-#define KILL_PTR(ptr, type)                                                     \
-  if (ptr)                                                                      \
-  {                                                                             \
-    free (ptr);                                                                 \
-    ptr = (type *)POISON;                                                       \
-  }
+#define KILL_PTR(ptr, type)													 	\
+	if (ptr)																	\
+	{																			\
+		free (ptr);																\
+		ptr = (type *)POISON;													\
+	}
 
 struct List
 {
-  type_t *data;
-  long *next;
-  long *prev;
-  long head;
-  long tail;
-  long free;
-  long capacity;
-  long size;
+	type_t *data;
+	long *next;
+	long *prev;
+	long head;
+	long tail;
+	long free;
+	long capacity;
+	long size;
 };
 
 
