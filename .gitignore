@@ -1,5 +1,6 @@
-.exe
-.make
-.html
-.dot
-
+*.exe
+*.make
+*.html
+*.dot
+*.png
+.gitignore
