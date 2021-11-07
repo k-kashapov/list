@@ -14,10 +14,10 @@ static int RunTest (List *lst, int checks_num, ...)
     for (long check = 1; check <= checks_num; check++)
     {
         type_t key = va_arg (checks, type_t);
-        if (lst->data[check] != key)
+        if (lst->nodes[check].data != key)
         {
             printf ("\nTEST FAILED: expected %ld at %ld, got %ld\n",
-                    key, check, lst->data[check]);
+                    key, check, lst->nodes[check].data);
         }
     }
 

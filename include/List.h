@@ -91,11 +91,16 @@ enum LIST_STATES
         var2 = tmp;                                                             \
     }
 
+struct Node
+{
+    type_t data;
+    long next;
+    long prev;
+};
+
 struct List
 {
-    type_t *data;
-    long *next;
-    long *prev;
+    Node *nodes;
     long head;
     long tail;
     long free;

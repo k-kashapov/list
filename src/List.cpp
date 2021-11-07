@@ -21,25 +21,23 @@ int ListInit (List *lst, long init_size)
 
     if (init_size < 2) init_size = 2;
 
-    REALLOC (lst->data, type_t, init_size);
-    REALLOC (lst->next,   long, init_size);
-    REALLOC (lst->prev,   long, init_size);
+    REALLOC (lst->nodes, Node, init_size);
 
     for (long elem = 0; elem < init_size; elem++)
     {
-        lst->data[elem] = 0;
-        lst->next[elem] = (elem + 1) % init_size;
-        lst->prev[elem] = -1;
+        lst->nodes[elem].data = 0;
+        lst->nodes[elem].next = (elem + 1) % init_size;
+        lst->nodes[elem].prev = -1;
     }
 
-    lst->next[0]  = 0;
-    lst->prev[0]  = 0;
-    lst->capacity = init_size;
-    lst->tail     = 0;
-    lst->head     = 0;
-    lst->size     = 0;
-    lst->free     = 1;
-    lst->linear   = 1;
+    lst->nodes[0].next  = 0;
+    lst->nodes[0].prev  = 0;
+    lst->capacity       = init_size;
+    lst->tail           = 0;
+    lst->head           = 0;
+    lst->size           = 0;
+    lst->free           = 1;
+    lst->linear         = 1;
 
     LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
     LIST_OK();
@@ -50,21 +48,21 @@ int ListInit (List *lst, long init_size)
 long LogicalToPhysicalAddr (List *lst, long num)
 {
     long elem = lst->head;
-    for (; elem < num; elem = lst->next[elem]) ;
+    for (; elem < num; elem = lst->nodes[elem].next) ;
     return elem;
 }
 
 static long ListSwap (List *lst, long elem1, long elem2)
 {
-    lst->next[lst->prev[elem1]] = elem2;
-    lst->next[lst->prev[elem2]] = elem1;
+    lst->nodes[lst->nodes[elem1].prev].next = elem2;
+    lst->nodes[lst->nodes[elem2].prev].next = elem1;
 
-    lst->prev[lst->next[elem1]] = elem2;
-    lst->prev[lst->next[elem2]] = elem1;
+    lst->nodes[lst->nodes[elem1].next].prev = elem2;
+    lst->nodes[lst->nodes[elem2].next].prev = elem1;
 
-    SWAP (lst->data[elem1], lst->data[elem2], type_t);
-    SWAP (lst->next[elem1], lst->next[elem2], type_t);
-    SWAP (lst->prev[elem1], lst->prev[elem2], type_t);
+    SWAP (lst->nodes[elem1].data, lst->nodes[elem2].data, type_t);
+    SWAP (lst->nodes[elem1].next, lst->nodes[elem2].next, type_t);
+    SWAP (lst->nodes[elem1].prev, lst->nodes[elem2].prev, type_t);
 
     return OK;
 }
@@ -74,7 +72,7 @@ long ListLinearize (List *lst)
     LIST_OK ();
 
     long steps = 1;
-    for (long elem = lst->head; lst->next[elem] != 0; elem = lst->next[elem], steps++)
+    for (long elem = lst->head; lst->nodes[elem].next != 0; elem = lst->nodes[elem].next, steps++)
     {
         if (elem != steps)
         {
@@ -85,13 +83,13 @@ long ListLinearize (List *lst)
 
     for (long elem = 1; elem < lst->size; elem++)
     {
-        lst->next[elem] = elem + 1;
-        lst->prev[elem] = elem - 1;
+        lst->nodes[elem].next = elem + 1;
+        lst->nodes[elem].prev = elem - 1;
     }
 
-    lst->data[0] = 0;
-    lst->next[0] = 0;
-    lst->prev[0] = 0;
+    lst->nodes[0].data = 0;
+    lst->nodes[0].next = 0;
+    lst->nodes[0].prev = 0;
 
     lst->head   = 1;
     lst->tail   = lst->size;
@@ -125,7 +123,7 @@ long ListInsert (List *lst, type_t value, long place)
         LOG_ERROR (INVALID INSERT ARG\nplace = %ld < 0!\n, , place);
         return INVALID_INS_ARG;
     }
-    else if (lst->prev[place] == -1)
+    else if (lst->nodes[place].prev == -1)
     {
         LOG_ERROR (INVALID INSERT ARG\nno elem at place = %ld\n, , place);
     }
@@ -136,12 +134,12 @@ long ListInsert (List *lst, type_t value, long place)
     }
     long dest = lst->free;
 
-    lst->free        = lst->next[lst->free];
-    lst->data[dest]  = value;
-    lst->next[dest]  = lst->next[place];
-    lst->next[place] = dest;
-    lst->prev[dest]  = place;
-    lst->linear      = 0;
+    lst->free              = lst->nodes[lst->free].next;
+    lst->nodes[dest].data  = value;
+    lst->nodes[dest].next  = lst->nodes[place].next;
+    lst->nodes[place].next = dest;
+    lst->nodes[dest].prev  = place;
+    lst->linear            = 0;
     lst->size++;
 
     LIST_OK();
@@ -160,23 +158,23 @@ long ListPushBack (List *lst, type_t value)
 
     if (lst->tail == 0)
     {
-        lst->free       = lst->next[lst->free];
-        lst->tail       = dest;
-        lst->head       = dest;
-        lst->data[dest] = value;
-        lst->next[dest] = 0;
-        lst->prev[dest] = 0;
+        lst->free             = lst->nodes[lst->free].next;
+        lst->tail             = dest;
+        lst->head             = dest;
+        lst->nodes[dest].data = value;
+        lst->nodes[dest].next = 0;
+        lst->nodes[dest].prev = 0;
         lst->size++;
 
         return dest;
     }
 
-    lst->free            = lst->next[lst->free];
-    lst->data[dest]      = value;
-    lst->next[dest]      = 0;
-    lst->prev[dest]      = lst->tail;
-    lst->next[lst->tail] = dest;
-    lst->tail            = dest;
+    lst->free             = lst->nodes[lst->free].next;
+    lst->nodes[dest].data = value;
+    lst->nodes[dest].next = 0;
+    lst->nodes[dest].prev = lst->tail;
+    lst->nodes[lst->tail].next  = dest;
+    lst->tail             = dest;
     lst->size++;
 
     LIST_OK();
@@ -194,24 +192,24 @@ long ListPushFront (List *lst, type_t value)
 
     if (lst->tail == 0)
     {
-        lst->free       = lst->next[lst->free];
-        lst->tail       = dest;
-        lst->head       = dest;
-        lst->data[dest] = value;
-        lst->next[dest] = 0;
-        lst->prev[dest] = 0;
+        lst->free             = lst->nodes[lst->free].next;
+        lst->tail             = dest;
+        lst->head             = dest;
+        lst->nodes[dest].data = value;
+        lst->nodes[dest].next = 0;
+        lst->nodes[dest].prev = 0;
         lst->size++;
 
         return dest;
     }
 
-    lst->free            = lst->next[lst->free];
-    lst->data[dest]      = value;
-    lst->next[dest]      = lst->head;
-    lst->prev[dest]      = 0;
-    lst->prev[lst->head] = dest;
-    lst->head            = dest;
-    lst->linear          = 0;
+    lst->free                  = lst->nodes[lst->free].next;
+    lst->nodes[dest].data      = value;
+    lst->nodes[dest].next      = lst->head;
+    lst->nodes[dest].prev      = 0;
+    lst->nodes[lst->head].prev = dest;
+    lst->head                  = dest;
+    lst->linear                = 0;
     lst->size++;
 
     LIST_OK();
@@ -231,19 +229,19 @@ type_t ListPopBack (List *lst, int *pop_err)
 
     if (lst->tail == lst->head)
     {
-        type_t tmp           = lst->data[lst->tail];
-        lst->next[lst->tail] = lst->free;
-        lst->free            = lst->tail;
-        lst->prev[lst->tail] = -1;
-        lst->data[lst->tail] = 0;
-        lst->tail            = 0;
-        lst->head            = 0;
+        type_t tmp                 = lst->nodes[lst->tail].data;
+        lst->nodes[lst->tail].next = lst->free;
+        lst->free                  = lst->tail;
+        lst->nodes[lst->tail].prev = -1;
+        lst->nodes[lst->tail].data = 0;
+        lst->tail                  = 0;
+        lst->head                  = 0;
         lst->size--;
 
         return tmp;
     }
 
-    long prev = lst->prev[lst->tail];
+    long prev = lst->nodes[lst->tail].prev;
     if (prev == -1)
     {
         LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n, , lst->tail);
@@ -251,13 +249,13 @@ type_t ListPopBack (List *lst, int *pop_err)
         return POP_FIND_ERR;
     }
 
-    type_t tmp           = lst->data[lst->tail];
-    lst->next[prev]      = 0;
-    lst->next[lst->tail] = lst->free;
-    lst->free            = lst->tail;
-    lst->prev[lst->tail] = -1;
-    lst->data[lst->tail] = 0;
-    lst->tail            = prev;
+    type_t tmp                 = lst->nodes[lst->tail].data;
+    lst->nodes[prev].next      = 0;
+    lst->nodes[lst->tail].next = lst->free;
+    lst->free                  = lst->tail;
+    lst->nodes[lst->tail].prev = -1;
+    lst->nodes[lst->tail].data = 0;
+    lst->tail                  = prev;
     lst->size--;
 
     if (lst->size <= lst->capacity / 4)
@@ -283,26 +281,26 @@ type_t ListPopFront (List *lst, int *pop_err)
 
     if (lst->tail == lst->head)
     {
-        type_t tmp           = lst->data[lst->tail];
-        lst->next[lst->tail] = lst->free;
-        lst->free            = lst->tail;
-        lst->prev[lst->tail] = -1;
-        lst->data[lst->tail] = 0;
-        lst->tail            = 0;
-        lst->head            = 0;
+        type_t tmp                 = lst->nodes[lst->tail].data;
+        lst->nodes[lst->tail].next = lst->free;
+        lst->free                  = lst->tail;
+        lst->nodes[lst->tail].prev = -1;
+        lst->nodes[lst->tail].data = 0;
+        lst->tail                  = 0;
+        lst->head                  = 0;
         lst->size--;
 
         return tmp;
     }
 
-    long next = lst->next[lst->head];
+    long next = lst->nodes[lst->head].next;
 
-    type_t tmp           = lst->data[lst->head];
-    lst->data[lst->head] = 0;
-    lst->next[lst->head] = lst->free;
-    lst->free            = lst->head;
-    lst->prev[lst->head] = -1;
-    lst->head            = next;
+    type_t tmp                 = lst->nodes[lst->head].data;
+    lst->nodes[lst->head].data = 0;
+    lst->nodes[lst->head].next = lst->free;
+    lst->free                  = lst->head;
+    lst->nodes[lst->head].prev = -1;
+    lst->head                  = next;
     lst->size--;
 
     if (lst->size <= lst->capacity / 4)
@@ -335,7 +333,7 @@ type_t ListPop (List *lst, long place, int *pop_err)
         return ListPopBack (lst, pop_err);
     }
 
-    long prev = lst->prev[place];
+    long prev = lst->nodes[place].prev;
     if (prev == -1)
     {
         LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n, , lst->tail);
@@ -343,15 +341,15 @@ type_t ListPop (List *lst, long place, int *pop_err)
             return POP_FIND_ERR;
     }
 
-    type_t tmp = lst->data[place];
+    type_t tmp = lst->nodes[place].data;
 
-    lst->next[lst->prev[place]] = lst->next[place];
-    lst->prev[lst->next[place]] = lst->prev[place];
-    lst->next[place]            = lst->free;
-    lst->free                   = place;
-    lst->prev[place]            = -1;
-    lst->data[place]            = 0;
-    lst->linear                 = 0;
+    lst->nodes[lst->nodes[place].prev].next = lst->nodes[place].next;
+    lst->nodes[lst->nodes[place].next].prev = lst->nodes[place].prev;
+    lst->nodes[place].next                  = lst->free;
+    lst->free                               = place;
+    lst->nodes[place].prev                  = -1;
+    lst->nodes[place].data                  = 0;
+    lst->linear                             = 0;
     lst->size--;
 
     if (lst->size <= lst->capacity / 4)
@@ -368,24 +366,14 @@ int64_t ListOK (List *lst)
     int64_t err = 0;
 
     // Checking if all pointers are valid
-    if (lst->data == NULL || lst->data == (type_t *)POISON)
+    if (lst->nodes == NULL || lst->nodes == (Node *)POISON)
     {
-        err |= BAD_DATA_PTR;
-    }
-
-    if (lst->next == NULL || lst->next == (long *)POISON)
-    {
-        err |= BAD_NEXT_PTR;
-    }
-
-    if (lst->prev == NULL || lst->prev == (long *)POISON)
-    {
-        err |= BAD_PREV_PTR;
+        err |= BAD_PTR;
     }
 
     // Checking if prev linked to current and next
     // Also steps counter must be equal to size of the list
-    if ((err & BAD_NEXT_PTR) || (err & BAD_PREV_PTR))
+    if (err & BAD_PTR)
     {
         return err;
     }
@@ -394,17 +382,17 @@ int64_t ListOK (List *lst)
     long curr  = 0;
     for
     (
-        curr = lst->next[lst->head];
-        lst->next[curr] != 0;
-        curr = lst->next[curr], steps++
+        curr = lst->nodes[lst->head].next;
+        lst->nodes[curr].next != 0;
+        curr = lst->nodes[curr].next, steps++
     )
     {
-        if (lst->prev[lst->next[curr]] != curr)
+        if (lst->nodes[lst->nodes[curr].next].prev != curr)
         {
             err |= NEXT_NOT_LINKED;
             break;
         }
-        if (lst->next[lst->prev[curr]] != curr)
+        if (lst->nodes[lst->nodes[curr].prev].next != curr)
         {
             err |= PREV_NOT_LINKED;
             break;
@@ -416,7 +404,7 @@ int64_t ListOK (List *lst)
         }
     }
 
-    if (steps < lst->size && lst->next[curr] == 0)
+    if (steps < lst->size && lst->nodes[curr].next == 0)
     {
         err |= UNEXPECTED_END;
     }
@@ -424,9 +412,9 @@ int64_t ListOK (List *lst)
     // For each free prev must be -1; number of free's equals capacity - size
     steps         = 1;
     long free_num = lst->capacity - lst->size - 1;
-    for (curr = lst->free; lst->next[curr] != 0; curr = lst->next[curr], steps++)
+    for (curr = lst->free; lst->nodes[curr].next != 0; curr = lst->nodes[curr].next, steps++)
     {
-        if (lst->prev[curr] != -1)
+        if (lst->nodes[curr].prev != -1)
         {
             err |= INVALID_FREE_PREV;
             break;
@@ -438,7 +426,7 @@ int64_t ListOK (List *lst)
         }
     }
 
-    if (steps < free_num && lst->next[curr] == 0)
+    if (steps < free_num && lst->nodes[curr].next == 0)
     {
         err |= UNEXPECTED_FREE_END;
     }
@@ -454,20 +442,18 @@ int64_t ListResize (List *lst, long new_capacity)
 
     long buff_len = new_capacity * (long) sizeof (type_t);
 
-    REALLOC (lst->data, type_t, buff_len);
-    REALLOC (lst->next,   long, buff_len);
-    REALLOC (lst->prev,   long, buff_len);
+    REALLOC (lst->nodes, Node, buff_len);
 
     for (long iter = lst->capacity; iter < new_capacity - 1; iter++)
     {
-        lst->data[iter] = 0;
-        lst->next[iter] = iter + 1;
-        lst->prev[iter] = -1;
+        lst->nodes[iter].data = 0;
+        lst->nodes[iter].next = iter + 1;
+        lst->nodes[iter].prev = -1;
     }
 
-    lst->data[new_capacity - 1] = 0;
-    lst->next[new_capacity - 1] = 0;
-    lst->prev[new_capacity - 1] = -1;
+    lst->nodes[new_capacity - 1].data = 0;
+    lst->nodes[new_capacity - 1].next = 0;
+    lst->nodes[new_capacity - 1].prev = -1;
     lst->free = lst->size + 1;
 
     lst->capacity = new_capacity;
@@ -486,9 +472,7 @@ int ListDtor (List *lst)
         CloseLogFile ();
     #endif
 
-    KILL_PTR (lst->data, type_t);
-    KILL_PTR (lst->next, long);
-    KILL_PTR (lst->prev, long);
+    KILL_PTR (lst->nodes, Node);
 
     return OK;
 }
@@ -565,15 +549,7 @@ int ListDtor (List *lst)
                 return OPEN_FILE_FAIL;
             }
             fprintf (Graph_file,    "digraph\n{\nrankdir = \"LR\";\n"
-                                    "overlap = prism;\nrank = same;\n"
-                                    "INFO[shape=record, style = \"rounded\","
-                                    "label = \""
-                                    "INFO |"
-                                    "{ <hd>HEAD = %ld| "
-                                    "<tl>TAIL = %ld|"
-                                    "<fr>FREE = %ld }\"]\n",
-                                    lst->head, lst->tail, lst->free
-                    );
+                                    "overlap = prism;\nrank = same;\n");
 
             const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
                                            "<em style = \"color : #00FA9A\">ok</em>";
@@ -593,7 +569,7 @@ int ListDtor (List *lst)
                 fprintf (Log_file,  "<pre>{\n\tcapacity = %ld;\n\tsize = %ld;",\
                                     lst->capacity, lst->size);
 
-                if (!lst->data)
+                if (!lst->nodes)
                 {
                     fprintf (Log_file, "\t}\n}\n </pre>");
                     return err;
@@ -613,20 +589,20 @@ int ListDtor (List *lst)
                                                 "<pr>Prev = %ld|"
                                                 "<nx>Next = %ld }\""
                                             "]\n", data_iter,
-                                            data_iter, lst->data[data_iter],
-                                            data_iter, lst->prev[data_iter],
-                                            lst->next[data_iter]);
+                                            data_iter, lst->nodes[data_iter].data,
+                                            data_iter, lst->nodes[data_iter].prev,
+                                            lst->nodes[data_iter].next);
                 }
 
                 fprintf (Log_file, "</tr> <tr> <td>Data</td>");
 
                 for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
-                    fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
+                    fprintf (Log_file, "<td>%4ld</td>", lst->nodes[data_iter].data);
                     if (data_iter > 0)
                     {
                         fprintf (Graph_file,    "NODE%ld->NODE%ld ["
-                                                "len = 0.1, weight = 100,"
+                                                "len = 0.1, weight = 100, "
                                                 "style = invis, "
                                                 "constraint = true];\n"
                                                 "NODE%ld->NODE%ld [len = 0.1, "
@@ -636,53 +612,61 @@ int ListDtor (List *lst)
                                                 data_iter,
                                                 (data_iter + 1) % lst->capacity);
 
-                        if (lst->prev[data_iter] >= 0)
+                        if (lst->nodes[data_iter].prev >= 0)
                         {
-                            fprintf (Graph_file,    "NODE%ld:<nx>:s->NODE%ld: "
+                            fprintf (Graph_file,    "NODE%ld:<nx>:s->NODE%ld:"
                                                     "<pos>:s [weight = 10, "
                                                     "color = blue, "
                                                     "constraint = true];\n"
-                                                    "NODE%ld:<pr>:n->NODE%ld: "
+                                                    "NODE%ld:<pr>:n->NODE%ld:"
                                                     "<pos>:n [weight = 1, "
                                                     "color = purple, "
                                                     "constraint = true];\n",
                                                     data_iter,
-                                                    lst->next[data_iter],
+                                                    lst->nodes[data_iter].next,
                                                     data_iter,
-                                                    lst->prev[data_iter]);
+                                                    lst->nodes[data_iter].prev);
                         }
                     }
                 }
 
-                // fprintf (Graph_file,    "INFO:<hd>:n->NODE%ld: "
-                //                         "<pos>:n [weight = 1000, "
-                //                         "color = darkgreen, "
-                //                         "constraint = false];\n"
-                //
-                //                         "INFO:<tl>:n->NODE%ld: "
-                //                         "<pos>:n [weight = 1000, "
-                //                         "color = orange, "
-                //                         "constraint = false];\n"
-                //
-                //                         "INFO:<fr>:n->NODE%ld: "
-                //                         "<pos>:n [weight = 1000, "
-                //                         "color = red, "
-                //                         "constraint = false];\n",
-                //                         lst->head, lst->tail, lst->free
-                //         );
+                fprintf (Graph_file,    "INFO[shape=record, style = \"rounded\","
+                                        "label = \""
+                                        "INFO |"
+                                        "{ <hd>HEAD = %ld| "
+                                        "<tl>TAIL = %ld|"
+                                        "<fr>FREE = %ld }\"]\n",
+                                        lst->head, lst->tail, lst->free);
+
+                fprintf (Graph_file,    "INFO:<hd>:n->NODE%ld: "
+                                        "<pos>:n [weight = 1000, "
+                                        "color = darkgreen, "
+                                        "constraint = false];\n"
+
+                                        "INFO:<tl>:n->NODE%ld: "
+                                        "<pos>:n [weight = 1000, "
+                                        "color = orange, "
+                                        "constraint = false];\n"
+
+                                        "INFO:<fr>:n->NODE%ld: "
+                                        "<pos>:n [weight = 1000, "
+                                        "color = red, "
+                                        "constraint = false];\n",
+                                        lst->head, lst->tail, lst->free
+                        );
 
                 fprintf (Log_file, "</tr> <tr> <td>Next</td>");
 
                 for (long next_iter = 0; next_iter < lst->capacity; next_iter++)
                 {
-                    fprintf (Log_file, "<td>%4ld</td>", lst->next[next_iter]);
+                    fprintf (Log_file, "<td>%4ld</td>", lst->nodes[next_iter].next);
                 }
 
                 fprintf (Log_file, "</tr> <tr> <td>Prev</td>");
 
                 for (long prev_iter = 0; prev_iter < lst->capacity; prev_iter++)
                 {
-                    fprintf (Log_file, "<td>%4ld</td>", lst->prev[prev_iter]);
+                    fprintf (Log_file, "<td>%4ld</td>", lst->nodes[prev_iter].prev);
                 }
 
                 fprintf (Log_file, "</tr></table>\n");
