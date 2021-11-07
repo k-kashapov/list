@@ -48,7 +48,7 @@ int Testing (List *lst)
     ListPushBack (lst, 9);
     long pos8 = ListPushFront (lst, 8);
     ListPushBack (lst, 7);
-    ListInsert (lst, 6, pos8);
+    ListInsertPhys (lst, 6, pos8);
     ListPopFront (lst);
 
     err = RunTest (lst, 4, 9, 0, 7, 6);

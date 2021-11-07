@@ -12,7 +12,7 @@
 
 const int POISON = 0x42;
 
-int ListInit (List *lst, long init_size)
+int64_t ListInit (List *lst, long init_size)
 {
     #ifdef LIST_LOGS
         int open_err = OpenLogFile ();
@@ -100,7 +100,7 @@ long ListLinearize (List *lst)
     return OK;
 }
 
-long ListInsert (List *lst, type_t value, long place)
+long ListInsertPhys (List *lst, type_t value, long place)
 {
     LIST_OK();
     if (place > lst->capacity)
@@ -118,7 +118,7 @@ long ListInsert (List *lst, type_t value, long place)
     {
         return ListPushBack (lst, value);
     }
-    else if (place < 0)
+    else if (place <= 0)
     {
         LOG_ERROR (INVALID INSERT ARG\nplace = %ld < 0!\n, , place);
         return INVALID_INS_ARG;
@@ -313,7 +313,7 @@ type_t ListPopFront (List *lst, int *pop_err)
     return tmp;
 }
 
-type_t ListPop (List *lst, long place, int *pop_err)
+type_t ListPopPhys (List *lst, long place, int *pop_err)
 {
     LIST_OK();
 
@@ -464,7 +464,7 @@ int64_t ListResize (List *lst, long new_capacity)
     return OK;
 }
 
-int ListDtor (List *lst)
+int64_t ListDtor (List *lst)
 {
     LIST_OK();
     LOG_PRINT ("<em style = \"color : #16c95e\">List destructed</em>\n");
@@ -639,18 +639,18 @@ int ListDtor (List *lst)
                                         "FREE = %ld\"]\n",
                                         lst->head, lst->tail, lst->free);
 
-                fprintf (Graph_file,    "INFO:n->NODE%ld: "
-                                        "<pos>:s [weight = 1000, "
+                fprintf (Graph_file,    "INFO:n->NODE%ld "
+                                        "[weight = 1000, "
                                         "color = darkgreen, "
-                                        "constraint = ture];\n"
+                                        "constraint = true];\n"
 
-                                        "INFO:s->NODE%ld: "
-                                        "<pos>:s [weight = 1000, "
+                                        "INFO:s->NODE%ld "
+                                        "[weight = 1000, "
                                         "color = orange, "
                                         "constraint = false];\n"
 
-                                        "INFO:e->NODE%ld: "
-                                        "<pos>:s [weight = 1000, "
+                                        "INFO:e->NODE%ld "
+                                        "[weight = 1000, "
                                         "color = red, "
                                         "constraint = false];\n",
                                         lst->head, lst->tail, lst->free

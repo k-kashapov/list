@@ -56,11 +56,12 @@ enum LIST_STATES
     {                                                                           \
         int64_t err = ListOK (lst);                                             \
         ListDump (lst, err, __FUNCTION__);                                      \
+        if (err) return err;                                                    \
     }
 #else
     #define LIST_OK()
     #define HLINE(width, height)
-    #define LOG_ERROR(string, ...) fprintf (Log_file, "%s: ERROR: " #string "\n", __FUNCTION__ __VA_ARGS__)
+    #define LOG_ERROR(string, ...) fprintf (stderr, "%s: ERROR: " #string "\n", __FUNCTION__ __VA_ARGS__)
     #define LOG_FATAL(string) fprintf (stderr, "FATAL: " string)
     #define LOG_PRINT(string) ;
 #endif
@@ -109,13 +110,13 @@ struct List
     char linear;
 };
 
-int ListInit (List *lst, long init_size = LIST_INIT_CAP);
+int64_t ListInit (List *lst, long init_size = LIST_INIT_CAP);
 
 long LogicalToPhysicalAddr (List *lst, long num);
 
 long ListLinearize (List *lst);
 
-long ListInsert (List *lst, type_t value, long place = -1);
+long ListInsertPhys (List *lst, type_t value, long place = -1);
 
 long ListPushBack (List *lst, type_t value);
 
@@ -125,12 +126,12 @@ type_t ListPopBack (List *lst, int *pop_err = NULL);
 
 type_t ListPopFront (List *lst, int *pop_err = NULL);
 
-type_t ListPop (List *lst, long place, int *pop_err = NULL);
+type_t ListPopPhys (List *lst, long place, int *pop_err = NULL);
 
 int64_t ListOK (List *lst);
 
 int64_t ListResize (List *lst, long new_capacity);
 
-int ListDtor (List *lst);
+int64_t ListDtor (List *lst);
 
 int64_t ListDump (List *lst, int64_t err, const char *called_from);
