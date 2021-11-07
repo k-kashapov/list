@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -99,6 +101,7 @@ struct List
     long free;
     long capacity;
     long size;
+    char linear;
 };
 
 int ListInit (List *lst, long init_size = LIST_INIT_CAP);

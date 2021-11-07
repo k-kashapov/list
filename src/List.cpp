@@ -39,6 +39,7 @@ int ListInit (List *lst, long init_size)
     lst->head     = 0;
     lst->size     = 0;
     lst->free     = 1;
+    lst->linear   = 1;
 
     LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
     LIST_OK();
@@ -92,9 +93,10 @@ long ListLinearize (List *lst)
     lst->next[0] = 0;
     lst->prev[0] = 0;
 
-    lst->head = 1;
-    lst->tail = lst->size;
-    lst->free = (lst->size + 1) % lst->capacity;
+    lst->head   = 1;
+    lst->tail   = lst->size;
+    lst->free   = (lst->size + 1) % lst->capacity;
+    lst->linear = 1;
 
     LIST_OK ();
     return OK;
@@ -139,6 +141,7 @@ long ListInsert (List *lst, type_t value, long place)
     lst->next[dest]  = lst->next[place];
     lst->next[place] = dest;
     lst->prev[dest]  = place;
+    lst->linear      = 0;
     lst->size++;
 
     LIST_OK();
@@ -208,6 +211,7 @@ long ListPushFront (List *lst, type_t value)
     lst->prev[dest]      = 0;
     lst->prev[lst->head] = dest;
     lst->head            = dest;
+    lst->linear          = 0;
     lst->size++;
 
     LIST_OK();
@@ -347,6 +351,7 @@ type_t ListPop (List *lst, long place, int *pop_err)
     lst->free                   = place;
     lst->prev[place]            = -1;
     lst->data[place]            = 0;
+    lst->linear                 = 0;
     lst->size--;
 
     if (lst->size <= lst->capacity / 4)
@@ -387,7 +392,12 @@ int64_t ListOK (List *lst)
 
     long steps = 2;
     long curr  = 0;
-    for (curr = lst->next[lst->head]; lst->next[curr] != 0; curr = lst->next[curr], steps++)
+    for
+    (
+        curr = lst->next[lst->head];
+        lst->next[curr] != 0;
+        curr = lst->next[curr], steps++
+    )
     {
         if (lst->prev[lst->next[curr]] != curr)
         {
@@ -554,12 +564,23 @@ int ListDtor (List *lst)
                 printf ("OPENING GRAPH FILE FAILED\n");
                 return OPEN_FILE_FAIL;
             }
-            fprintf (Graph_file, "digraph\n{\nrankdir = \"LR\";\noverlap = scale;\nrank = same;\n");
+            fprintf (Graph_file,    "digraph\n{\nrankdir = \"LR\";\n"
+                                    "overlap = prism;\nrank = same;\n"
+                                    "INFO[shape=record, style = \"rounded\","
+                                    "label = \""
+                                    "INFO |"
+                                    "{ <hd>HEAD = %ld| "
+                                    "<tl>TAIL = %ld|"
+                                    "<fr>FREE = %ld }\"]\n",
+                                    lst->head, lst->tail, lst->free
+                    );
 
             const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
                                            "<em style = \"color : #00FA9A\">ok</em>";
-            fprintf (Log_file, "[%s] [%s] List &#60%s&#62 [&%p] %s ; called from %s\n",\
-                               __DATE__, __TIME__, _type_name, lst, err_string, called_from);
+            fprintf (Log_file,  "[%s] [%s] List &#60%s&#62 [&%p] %s ; "
+                                "called from %s\n",\
+                                __DATE__, __TIME__, _type_name,
+                                lst, err_string, called_from);
 
             #include "lst_errs.h"
 
@@ -583,16 +604,18 @@ int ListDtor (List *lst)
                 for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
                     fprintf (Log_file, "<th>%4ld</th>", data_iter);
-                    fprintf (Graph_file,    "NODE%ld[shape=record, style = \"rounded\","
+                    fprintf (Graph_file,    "NODE%ld"
+                                            "["
+                                                "shape=record, style = \"rounded\", rank = %ld, "
                                                 "label = \""
                                                 "Data = %ld|"
-                                                "{ <nx>Next = %ld| "
-                                                "<pos>Position = %ld| "
-                                                "<pr>Prev = %ld }\""
-                                                "]\n",
+                                                "{ <pos>Position = %ld| "
+                                                "<pr>Prev = %ld|"
+                                                "<nx>Next = %ld }\""
+                                            "]\n", data_iter,
                                             data_iter, lst->data[data_iter],
-                                            lst->next[data_iter],
-                                            data_iter, lst->prev[data_iter]);
+                                            data_iter, lst->prev[data_iter],
+                                            lst->next[data_iter]);
                 }
 
                 fprintf (Log_file, "</tr> <tr> <td>Data</td>");
@@ -600,20 +623,53 @@ int ListDtor (List *lst)
                 for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
                     fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
-                    if (lst->prev[data_iter] >= 0 && data_iter > 0)
+                    if (data_iter > 0)
                     {
                         fprintf (Graph_file,    "NODE%ld->NODE%ld ["
                                                 "len = 0.1, weight = 100,"
-                                                "style = invis, constraint = true];\n"
-                                                "NODE%ld->NODE%ld [len = 0.1, weight = 100, style = invis, constraint = true];\n"
-                                                "NODE%ld:<nx>:s->NODE%ld:<pos>:se [weight = 1, color = blue, constraint = false];\n"
-                                                "NODE%ld:<pr>:s->NODE%ld:<pos>:sw [weight = 1, color = purple, constraint = true];\n",
+                                                "style = invis, "
+                                                "constraint = true];\n"
+                                                "NODE%ld->NODE%ld [len = 0.1, "
+                                                "weight = 100, style = invis, "
+                                                "constraint = true];\n",
                                                 data_iter - 1, data_iter,
-                                                data_iter, (data_iter + 1) % lst->capacity,
-                                                data_iter, lst->next[data_iter],
-                                                data_iter, lst->prev[data_iter]);
+                                                data_iter,
+                                                (data_iter + 1) % lst->capacity);
+
+                        if (lst->prev[data_iter] >= 0)
+                        {
+                            fprintf (Graph_file,    "NODE%ld:<nx>:s->NODE%ld: "
+                                                    "<pos>:s [weight = 10, "
+                                                    "color = blue, "
+                                                    "constraint = true];\n"
+                                                    "NODE%ld:<pr>:n->NODE%ld: "
+                                                    "<pos>:n [weight = 1, "
+                                                    "color = purple, "
+                                                    "constraint = true];\n",
+                                                    data_iter,
+                                                    lst->next[data_iter],
+                                                    data_iter,
+                                                    lst->prev[data_iter]);
+                        }
                     }
                 }
+
+                // fprintf (Graph_file,    "INFO:<hd>:n->NODE%ld: "
+                //                         "<pos>:n [weight = 1000, "
+                //                         "color = darkgreen, "
+                //                         "constraint = false];\n"
+                //
+                //                         "INFO:<tl>:n->NODE%ld: "
+                //                         "<pos>:n [weight = 1000, "
+                //                         "color = orange, "
+                //                         "constraint = false];\n"
+                //
+                //                         "INFO:<fr>:n->NODE%ld: "
+                //                         "<pos>:n [weight = 1000, "
+                //                         "color = red, "
+                //                         "constraint = false];\n",
+                //                         lst->head, lst->tail, lst->free
+                //         );
 
                 fprintf (Log_file, "</tr> <tr> <td>Next</td>");
 
@@ -631,9 +687,11 @@ int ListDtor (List *lst)
 
                 fprintf (Log_file, "</tr></table>\n");
 
-                fprintf (Log_file,  "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\n\n"
+                fprintf (Log_file,  "<rect>Head\n%ld</rect>\n"
+                                    "\n<rect>Tail\n%ld</rect>\n\n"
                                     "<rect>Free\n%ld</rect>\n\n"
-                                    "\n}</pre>", lst->head, lst->tail, lst->free);
+                                    "\n}</pre>",
+                                    lst->head, lst->tail, lst->free);
 
                 fprintf (Graph_file, "\n}");
                 fclose (Graph_file);
@@ -646,7 +704,8 @@ int ListDtor (List *lst)
 
                 system (sys_command);
 
-                fprintf (Log_file, "\n<img src = \"img/Img%d.png\">\n", GRAPH_NUM);
+                fprintf (Log_file,  "\n<img src = \"img/Img%d.png\">\n",
+                                    GRAPH_NUM);
                 GRAPH_NUM++;
                 fprintf (Log_file, HLINE (1000, 0) "\n");
             }
