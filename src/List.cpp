@@ -126,6 +126,7 @@ long ListInsert (List *lst, type_t value, long place)
     else if (lst->nodes[place].prev == -1)
     {
         LOG_ERROR (INVALID INSERT ARG\nno elem at place = %ld\n, , place);
+        return INVALID_INS_ARG;
     }
 
     if (lst->free < 1)
@@ -169,12 +170,12 @@ long ListPushBack (List *lst, type_t value)
         return dest;
     }
 
-    lst->free             = lst->nodes[lst->free].next;
-    lst->nodes[dest].data = value;
-    lst->nodes[dest].next = 0;
-    lst->nodes[dest].prev = lst->tail;
-    lst->nodes[lst->tail].next  = dest;
-    lst->tail             = dest;
+    lst->free                  = lst->nodes[lst->free].next;
+    lst->nodes[dest].data      = value;
+    lst->nodes[dest].next      = 0;
+    lst->nodes[dest].prev      = lst->tail;
+    lst->nodes[lst->tail].next = dest;
+    lst->tail                  = dest;
     lst->size++;
 
     LIST_OK();
@@ -630,26 +631,26 @@ int ListDtor (List *lst)
                     }
                 }
 
-                fprintf (Graph_file,    "INFO[shape=record, style = \"rounded\","
+                fprintf (Graph_file,    "INFO[shape=box, style = \"rounded\","
                                         "label = \""
-                                        "INFO |"
-                                        "{ <hd>HEAD = %ld| "
-                                        "<tl>TAIL = %ld|"
-                                        "<fr>FREE = %ld }\"]\n",
+                                        "INFO\n"
+                                        "HEAD = %ld\n"
+                                        "TAIL = %ld\n"
+                                        "FREE = %ld\"]\n",
                                         lst->head, lst->tail, lst->free);
 
-                fprintf (Graph_file,    "INFO:<hd>:n->NODE%ld: "
-                                        "<pos>:n [weight = 1000, "
+                fprintf (Graph_file,    "INFO:n->NODE%ld: "
+                                        "<pos>:s [weight = 1000, "
                                         "color = darkgreen, "
-                                        "constraint = false];\n"
+                                        "constraint = ture];\n"
 
-                                        "INFO:<tl>:n->NODE%ld: "
-                                        "<pos>:n [weight = 1000, "
+                                        "INFO:s->NODE%ld: "
+                                        "<pos>:s [weight = 1000, "
                                         "color = orange, "
                                         "constraint = false];\n"
 
-                                        "INFO:<fr>:n->NODE%ld: "
-                                        "<pos>:n [weight = 1000, "
+                                        "INFO:e->NODE%ld: "
+                                        "<pos>:s [weight = 1000, "
                                         "color = red, "
                                         "constraint = false];\n",
                                         lst->head, lst->tail, lst->free
