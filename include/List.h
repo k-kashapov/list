@@ -82,6 +82,13 @@ enum LIST_STATES
         ptr = (type *)POISON;                                                   \
     }
 
+#define SWAP(var1, var2, type)                                                  \
+    {                                                                           \
+        type tmp = var1;                                                        \
+        var1 = var2;                                                            \
+        var2 = tmp;                                                             \
+    }
+
 struct List
 {
     type_t *data;
@@ -94,10 +101,11 @@ struct List
     long size;
 };
 
-
 int ListInit (List *lst, long init_size = LIST_INIT_CAP);
 
 long LogicalToPhysicalAddr (List *lst, long num);
+
+long ListLinearize (List *lst);
 
 long ListInsert (List *lst, type_t value, long place = -1);
 

@@ -53,6 +53,53 @@ long LogicalToPhysicalAddr (List *lst, long num)
     return elem;
 }
 
+static long ListSwap (List *lst, long elem1, long elem2)
+{
+    lst->next[lst->prev[elem1]] = elem2;
+    lst->next[lst->prev[elem2]] = elem1;
+
+    lst->prev[lst->next[elem1]] = elem2;
+    lst->prev[lst->next[elem2]] = elem1;
+
+    SWAP (lst->data[elem1], lst->data[elem2], type_t);
+    SWAP (lst->next[elem1], lst->next[elem2], type_t);
+    SWAP (lst->prev[elem1], lst->prev[elem2], type_t);
+
+    return OK;
+}
+
+long ListLinearize (List *lst)
+{
+    LIST_OK ();
+
+    long steps = 1;
+    for (long elem = lst->head; lst->next[elem] != 0; elem = lst->next[elem], steps++)
+    {
+        if (elem != steps)
+        {
+            ListSwap (lst, elem, steps);
+            elem = steps;
+        }
+    }
+
+    for (long elem = 1; elem < lst->size; elem++)
+    {
+        lst->next[elem] = elem + 1;
+        lst->prev[elem] = elem - 1;
+    }
+
+    lst->data[0] = 0;
+    lst->next[0] = 0;
+    lst->prev[0] = 0;
+
+    lst->head = 1;
+    lst->tail = lst->size;
+    lst->free = (lst->size + 1) % lst->capacity;
+
+    LIST_OK ();
+    return OK;
+}
+
 long ListInsert (List *lst, type_t value, long place)
 {
     LIST_OK();
@@ -209,6 +256,11 @@ type_t ListPopBack (List *lst, int *pop_err)
     lst->tail            = prev;
     lst->size--;
 
+    if (lst->size <= lst->capacity / 4)
+    {
+        ListResize (lst, lst->capacity / 2);
+    }
+
     LIST_OK();
 
     return tmp;
@@ -248,6 +300,11 @@ type_t ListPopFront (List *lst, int *pop_err)
     lst->prev[lst->head] = -1;
     lst->head            = next;
     lst->size--;
+
+    if (lst->size <= lst->capacity / 4)
+    {
+        ListResize (lst, lst->capacity / 2);
+    }
 
     LIST_OK();
     return tmp;
@@ -291,6 +348,11 @@ type_t ListPop (List *lst, long place, int *pop_err)
     lst->prev[place]            = -1;
     lst->data[place]            = 0;
     lst->size--;
+
+    if (lst->size <= lst->capacity / 4)
+    {
+        ListResize (lst, lst->capacity / 2);
+    }
 
     LIST_OK();
     return tmp;
@@ -492,7 +554,7 @@ int ListDtor (List *lst)
                 printf ("OPENING GRAPH FILE FAILED\n");
                 return OPEN_FILE_FAIL;
             }
-            fprintf (Graph_file, "digraph\n{\nrankdir = \"LR\";\n");
+            fprintf (Graph_file, "digraph\n{\nrankdir = \"LR\";\noverlap = scale;\nrank = same;\n");
 
             const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
                                            "<em style = \"color : #00FA9A\">ok</em>";
@@ -508,8 +570,7 @@ int ListDtor (List *lst)
             #endif
             {
                 fprintf (Log_file,  "<pre>{\n\tcapacity = %ld;\n\tsize = %ld;",\
-                                    lst->capacity,
-                                    (lst->tail - lst->head + lst->capacity) % lst->capacity);
+                                    lst->capacity, lst->size);
 
                 if (!lst->data)
                 {
@@ -525,12 +586,13 @@ int ListDtor (List *lst)
                     fprintf (Graph_file,    "NODE%ld[shape=record, style = \"rounded\","
                                                 "label = \""
                                                 "Data = %ld|"
-                                                "{ Position = %ld|"
-                                                "<f0> Next = %ld|"
-                                                "<f1> Prev = %ld }\""
+                                                "{ <nx>Next = %ld| "
+                                                "<pos>Position = %ld| "
+                                                "<pr>Prev = %ld }\""
                                                 "]\n",
-                                            data_iter, lst->data[data_iter], data_iter,
-                                            lst->next[data_iter], lst->prev[data_iter]);
+                                            data_iter, lst->data[data_iter],
+                                            lst->next[data_iter],
+                                            data_iter, lst->prev[data_iter]);
                 }
 
                 fprintf (Log_file, "</tr> <tr> <td>Data</td>");
@@ -538,13 +600,18 @@ int ListDtor (List *lst)
                 for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
                     fprintf (Log_file, "<td>%4ld</td>", lst->data[data_iter]);
-                    if (lst->prev[data_iter] >= 0)
+                    if (lst->prev[data_iter] >= 0 && data_iter > 0)
                     {
-                    fprintf (Graph_file,    "NODE%ld->NODE%ld [style = invis, weight= 100];\n"
-                                            "NODE%ld:<f0>->NODE%ld;\n"
-                                            "NODE%ld:<f1>->NODE%d;\n",
-                                            (data_iter - 1 + lst->capacity) % lst->capacity,
-                                            data_iter, data_iter, lst->next[data_iter], data_iter, 0);
+                        fprintf (Graph_file,    "NODE%ld->NODE%ld ["
+                                                "len = 0.1, weight = 100,"
+                                                "style = invis, constraint = true];\n"
+                                                "NODE%ld->NODE%ld [len = 0.1, weight = 100, style = invis, constraint = true];\n"
+                                                "NODE%ld:<nx>:s->NODE%ld:<pos>:se [weight = 1, color = blue, constraint = false];\n"
+                                                "NODE%ld:<pr>:s->NODE%ld:<pos>:sw [weight = 1, color = purple, constraint = true];\n",
+                                                data_iter - 1, data_iter,
+                                                data_iter, (data_iter + 1) % lst->capacity,
+                                                data_iter, lst->next[data_iter],
+                                                data_iter, lst->prev[data_iter]);
                     }
                 }
 
@@ -564,7 +631,7 @@ int ListDtor (List *lst)
 
                 fprintf (Log_file, "</tr></table>\n");
 
-                fprintf (Log_file,    "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\n\n"
+                fprintf (Log_file,  "<rect>Head\n%ld</rect>\n\n<rect>Tail\n%ld</rect>\n\n"
                                     "<rect>Free\n%ld</rect>\n\n"
                                     "\n}</pre>", lst->head, lst->tail, lst->free);
 
@@ -579,7 +646,7 @@ int ListDtor (List *lst)
 
                 system (sys_command);
 
-                fprintf (Log_file, "\n<img src = \"img/Img%d.png\" width = 1000px>\n", GRAPH_NUM);
+                fprintf (Log_file, "\n<img src = \"img/Img%d.png\">\n", GRAPH_NUM);
                 GRAPH_NUM++;
                 fprintf (Log_file, HLINE (1000, 0) "\n");
             }

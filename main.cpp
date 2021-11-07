@@ -12,6 +12,8 @@ int main ()
     ListPushFront (&lst, 40);
     ListPushBack (&lst, 50);
 
+    ListLinearize (&lst);
+
     ListDtor (&lst);
     return 0;
 }
