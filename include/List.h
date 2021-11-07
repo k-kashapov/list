@@ -42,13 +42,13 @@ enum LIST_STATES
                                     "</style>"                                  \
                                     "<hr id = \"w" #width "\"></div>"
 
-    #define LOG_FATAL(string) fprintf (stderr, "\n\n<<img src = \"img/fatal.jpg\""     \
-                                                 "width = 150px>\nem style = \"color:" \
-                                                 "red\">FATAL: " string "</em>")
+    #define LOG_FATAL(string) fprintf (stderr,  "\n\n<<img src = \"src/fatal.jpg\""     \
+                                                "width = 150px>\nem style = \"color:"   \
+                                                "red\">FATAL: " string "</em>")
 
-    #define LOG_ERROR(string)    "\n\n<img src = \"img/cat.jpg\" width = 150px>\n" \
-                                "<em style = \"color : red\">ERROR: </em>"         \
-                                #string "\n" HLINE (1000, 0)                       \
+    #define LOG_ERROR(string, ...)  fprintf (Log_file,  "\n%s: \n<img src = \"src/error.jpg\" width = 150px>\n" \
+                                                        "<em style = \"color : red\">ERROR: </em>"              \
+                                                        #string "\n" HLINE (1000, 0), __FUNCTION__ __VA_ARGS__) \
 
     #define LIST_OK()                                                           \
     {                                                                           \
@@ -58,7 +58,9 @@ enum LIST_STATES
 #else
     #define LIST_OK()
     #define HLINE(width, height)
-    #define LOG_PRINT(string)
+    #define LOG_ERROR(string, ...) fprintf (Log_file, "%s: ERROR: " #string "\n", __FUNCTION__ __VA_ARGS__)
+    #define LOG_FATAL(string) fprintf (stderr, "FATAL: " string)
+    #define LOG_PRINT(string) ;
 #endif
 
 

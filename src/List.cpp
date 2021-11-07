@@ -58,16 +58,13 @@ long ListInsert (List *lst, type_t value, long place)
     LIST_OK();
     if (place > lst->capacity)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (INVALID INSERT ARG) "\nplace = %ld > capacity = %ld!\n",
-                 place, lst->capacity);
+        LOG_ERROR (INVALID INSERT ARG\nplace = %ld > capacity = %ld!\n, , place, lst->capacity);
         return INVALID_INS_ARG;
     }
 
     if (lst->tail == 0)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (INVALID INSERT) "\ninsert after 0 elem!\n");
+        LOG_ERROR (INVALID INSERT\ninsert after 0 elem!\n);
         return INVALID_INS_ARG;
     }
     else if (place == -1 || place == lst->tail)
@@ -76,23 +73,19 @@ long ListInsert (List *lst, type_t value, long place)
     }
     else if (place < 0)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (INVALID INSERT ARG) "\nplace = %ld < 0!\n",
-                 place);
+        LOG_ERROR (INVALID INSERT ARG\nplace = %ld < 0!\n, , place);
         return INVALID_INS_ARG;
     }
     else if (lst->prev[place] == -1)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (INVALID INSERT ARG) "\nno elem at place = %ld\n",
-                 place);
+        LOG_ERROR (INVALID INSERT ARG\nno elem at place = %ld\n, , place);
     }
 
-    long dest = lst->free;
-    if (dest < 1)
+    if (lst->free < 1)
     {
-        ListResize (lst, lst->capacity);
+        ListResize (lst, lst->capacity * 2);
     }
+    long dest = lst->free;
 
     lst->free        = lst->next[lst->free];
     lst->data[dest]  = value;
@@ -109,12 +102,11 @@ long ListInsert (List *lst, type_t value, long place)
 long ListPushBack (List *lst, type_t value)
 {
     LIST_OK();
-    long dest = lst->free;
-    if (dest < 1)
+    if (lst->free < 1)
     {
-        fprintf (Log_file, LOG_ERROR (NO FREE SPACE) "\n");
-        return -1;
+        ListResize (lst, lst->capacity * 2);
     }
+    long dest = lst->free;
 
     if (lst->tail == 0)
     {
@@ -144,11 +136,11 @@ long ListPushBack (List *lst, type_t value)
 long ListPushFront (List *lst, type_t value)
 {
     LIST_OK();
-    long dest = lst->free;
-    if (dest < 1)
+    if (lst->free < 1)
     {
-        return -1;
+        ListResize (lst, lst->capacity * 2);
     }
+    long dest = lst->free;
 
     if (lst->tail == 0)
     {
@@ -181,8 +173,7 @@ type_t ListPopBack (List *lst, int *pop_err)
 
     if (lst->tail == 0)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (ZERO ELEMENT POP) "\n");
+        LOG_ERROR (ZERO ELEMENT POP\n);
         if (pop_err) *pop_err = POP_FIND_ERR;
         return POP_FIND_ERR;
     }
@@ -204,9 +195,7 @@ type_t ListPopBack (List *lst, int *pop_err)
     long prev = lst->prev[lst->tail];
     if (prev == -1)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n),
-                 lst->tail);
+        LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n, , lst->tail);
         if (pop_err) *pop_err = POP_FIND_ERR;
         return POP_FIND_ERR;
     }
@@ -231,8 +220,7 @@ type_t ListPopFront (List *lst, int *pop_err)
 
     if (lst->head == 0)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (ZERO ELEMENT POP) "\n");
+        LOG_ERROR (ZERO ELEMENT POP\n);
         if (pop_err) *pop_err = POP_FIND_ERR;
         return POP_FIND_ERR;
     }
@@ -271,8 +259,7 @@ type_t ListPop (List *lst, long place, int *pop_err)
 
     if (lst->tail == 0)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (ZERO ELEMENT POP) "\n");
+        LOG_ERROR (ZERO ELEMENT POP\n);
         if (pop_err) *pop_err = POP_FIND_ERR;
         return POP_FIND_ERR;
     }
@@ -290,9 +277,7 @@ type_t ListPop (List *lst, long place, int *pop_err)
     long prev = lst->prev[place];
     if (prev == -1)
     {
-        fprintf (Log_file,
-                 LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n),
-                 lst->tail);
+        LOG_ERROR (NO ELEMENT FOUND: expected next = %ld</em>\n, , lst->tail);
         if (pop_err) *pop_err = POP_FIND_ERR;
             return POP_FIND_ERR;
     }
@@ -391,6 +376,8 @@ int64_t ListOK (List *lst)
 
 int64_t ListResize (List *lst, long new_capacity)
 {
+    LIST_OK();
+
     if (new_capacity <= 0) new_capacity = LIST_INIT_CAP;
 
     long buff_len = new_capacity * (long) sizeof (type_t);
@@ -406,9 +393,14 @@ int64_t ListResize (List *lst, long new_capacity)
         lst->prev[iter] = -1;
     }
 
+    lst->data[new_capacity - 1] = 0;
     lst->next[new_capacity - 1] = 0;
+    lst->prev[new_capacity - 1] = -1;
+    lst->free = lst->size + 1;
 
     lst->capacity = new_capacity;
+
+    LIST_OK();
 
     return OK;
 }
@@ -433,7 +425,7 @@ int ListDtor (List *lst)
     #define LST_ERR(name, code)                                                 \
         if (err & code)                                                         \
         {                                                                       \
-            fprintf (Log_file, LOG_ERROR (name) "\n");                          \
+            LOG_ERROR (name\n);                                                 \
         }
 
     static int OpenLogFile ()

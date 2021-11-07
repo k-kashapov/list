@@ -1,20 +1,17 @@
 #include "List.h"
 
-int main (int argc, const char **argv)
+int main ()
 {
-  List lst = {};
+    List lst = {};
 
-  ListInit (&lst, 10);
+    ListInit (&lst, 3);
 
-  ListPushBack (&lst, 9);
-  ListPushBack (&lst, 10);
-  ListPushFront (&lst, 11);
-  ListInsert (&lst, 2, 2);
-  printf ("%ld\n", ListPop (&lst, 2));
-  printf ("%ld\n", ListPopFront (&lst));
-  printf ("%ld\n", ListPopBack (&lst));
+    ListPushBack (&lst, 10);
+    ListPushBack (&lst, 20);
+    ListPushFront (&lst, 30);
+    ListPushFront (&lst, 40);
+    ListPushBack (&lst, 50);
 
-
-  ListDtor (&lst);
-  return 0;
+    ListDtor (&lst);
+    return 0;
 }
