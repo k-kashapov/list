@@ -114,6 +114,10 @@ int64_t ListInit (List *lst, long init_size = 0, long push_elems = 0, ...);
 
 long LogicalToPhysicalAddr (List *lst, long num);
 
+long ListGetHead (List *lst);
+
+long ListGetTail (List *lst);
+
 long ListLinearize (List *lst);
 
 long ListInsertPhys (List *lst, type_t value, long place = -1);

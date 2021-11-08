@@ -18,8 +18,8 @@ int main (int argc, const char **argv)
     ListPushFront (&lst, 7);
     ListPushFront (&lst, 8);
     ListPushBack (&lst, 9);
+    ListPopPhys (&lst, 2);
     ListPushFront (&lst, 10);
-    ListLinearize (&lst);
 
     ListDtor (&lst);
 

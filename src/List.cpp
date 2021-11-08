@@ -4,7 +4,6 @@
     static int OpenLogFile ();
     static int CloseLogFile ();
     static FILE *Log_file   = NULL;
-    static FILE *Graph_file = NULL;
     static int  GRAPH_NUM   = 0;
 #else
     static FILE *Log_file = stderr;
@@ -57,9 +56,27 @@ int64_t ListInit (List *lst, long init_size, long push_elems, ...)
 
 long LogicalToPhysicalAddr (List *lst, long num)
 {
-    long elem = lst->head;
-    for (; elem < num; elem = lst->nodes[elem].next) ;
+    LIST_OK ();
+    if (lst->linear)
+    {
+        return num + lst->head - 1;
+    }
+    long elem  = lst->head;
+    long steps = 1;
+    for (; steps < num; elem = lst->nodes[elem].next, steps++) ;
     return elem;
+}
+
+long ListGetHead (List *lst)
+{
+    LIST_OK ();
+    return lst->head;
+}
+
+long ListGetTail (List *lst)
+{
+    LIST_OK ();
+    return lst->tail;
 }
 
 static long ListSwap (List *lst, long elem1, long elem2)
@@ -148,7 +165,7 @@ long ListInsertPhys (List *lst, type_t value, long place)
     }
     long dest = lst->free;
 
-    lst->free              = lst->nodes[lst->free].next;
+    lst->free              = lst->nodes[dest].next;
     lst->nodes[dest].data  = value;
     lst->nodes[dest].next  = lst->nodes[place].next;
     lst->nodes[place].next = dest;
@@ -172,9 +189,10 @@ long ListPushBack (List *lst, type_t value)
 
     if (lst->tail == 0)
     {
-        lst->free             = lst->nodes[lst->free].next;
+        lst->free             = lst->nodes[dest].next;
         lst->tail             = dest;
         lst->head             = dest;
+
         lst->nodes[dest].data = value;
         lst->nodes[dest].next = 0;
         lst->nodes[dest].prev = 0;
@@ -183,12 +201,15 @@ long ListPushBack (List *lst, type_t value)
         return dest;
     }
 
-    lst->free                  = lst->nodes[lst->free].next;
+    lst->free                  = lst->nodes[dest].next;
+
     lst->nodes[dest].data      = value;
     lst->nodes[dest].next      = 0;
     lst->nodes[dest].prev      = lst->tail;
+
     lst->nodes[lst->tail].next = dest;
     lst->tail                  = dest;
+
     lst->size++;
 
     LIST_OK();
@@ -206,7 +227,7 @@ long ListPushFront (List *lst, type_t value)
 
     if (lst->tail == 0)
     {
-        lst->free             = lst->nodes[lst->free].next;
+        lst->free             = lst->nodes[dest].next;
         lst->tail             = dest;
         lst->head             = dest;
         lst->nodes[dest].data = value;
@@ -551,22 +572,47 @@ int64_t ListDtor (List *lst)
         return OK;
     }
 
+    static int64_t CreateListNode (FILE *output, long pos, Node node)
+    {
+        int64_t printed =  fprintf (output, "NODE%ld"
+                                            "["
+                                                "shape=record, style = \"rounded,filled\", "
+                                                "fillcolor=\"%s\", "
+                                                "label = \""
+                                                "Data = %ld|"
+                                                "<pos>Position = %ld| "
+                                                "{ <pr>Prev = %ld|"
+                                                "<nx>Next = %ld }\""
+                                            "]\n",
+                                            pos, node.prev == -1 ? "pink" : "lightblue",
+                                            node.data, pos, node.prev, node.next);
+        return printed;
+    }
+
+    static FILE *OpenGraphFile (const char *name)
+    {
+        FILE *file_ptr = fopen (name, "w");
+        if (!file_ptr)
+        {
+            printf ("OPENING GRAPH FILE FAILED\n");
+            return NULL;
+        }
+        fprintf (file_ptr,  "digraph\n{\nrankdir = \"LR\";\n"
+                            "splines = true;\n");
+        return  file_ptr;
+    }
+
     int64_t ListDump (List *lst, int64_t err, const char *called_from)
     {
         #ifdef LIST_LOGS
             if (!Log_file) return -1;
 
-            Graph_file = fopen ("dotInput.dot", "w");
-            if (!Graph_file)
-            {
-                printf ("OPENING GRAPH FILE FAILED\n");
-                return OPEN_FILE_FAIL;
-            }
-            fprintf (Graph_file,    "digraph\n{\nrankdir = \"LR\";\n"
-                                    "splines = true;\n");
+            FILE *Graph_file = OpenGraphFile ("dotInput.dot");
+            FILE *LinearG_file = OpenGraphFile ("dotLinear.dot");
 
             const char *err_string = err ? "<em style = \"color : red\">ERROR</em>" :
                                            "<em style = \"color : #00FA9A\">ok</em>";
+
             fprintf (Log_file,  "[%s] [%s] List &#60%s&#62 [&%p] %s ; "
                                 "called from %s\n",\
                                 __DATE__, __TIME__, _type_name,
@@ -592,15 +638,8 @@ int64_t ListDtor (List *lst)
                     return err;
                 }
 
-                fprintf (Graph_file,    "NODE0"
-                                        "["
-                                            "shape=record, style = \"rounded\", "
-                                            "label = \""
-                                            "Data = %ld|"
-                                            "{ <pos>Position = %ld| "
-                                            "<pr>Prev = %ld|"
-                                            "<nx>Next = %ld }\""
-                                        "]\n", 0l, 0l, 0l, 0l);
+                CreateListNode (Graph_file, 0, lst->nodes[0]);
+                CreateListNode (LinearG_file, 0, lst->nodes[0]);
 
                 fprintf (Log_file, "<table> <tr> <th>Position</th>");
 
@@ -609,24 +648,15 @@ int64_t ListDtor (List *lst)
                     fprintf (Log_file, "<th>%4ld</th>", data_iter);
                     if (data_iter > 0)
                     {
-                        fprintf (Graph_file,    "NODE%ld"
-                                                "["
-                                                    "shape=record, style = \"rounded\", "
-                                                    "label = \""
-                                                    "Data = %ld|"
-                                                    "{ <pos>Position = %ld| "
-                                                    "<pr>Prev = %ld|"
-                                                    "<nx>Next = %ld }\""
-                                                "]\n"
-                                                "NODE%ld->NODE%ld ["
+                        CreateListNode (Graph_file, data_iter, lst->nodes[data_iter]);
+                        CreateListNode (LinearG_file, data_iter, lst->nodes[data_iter]);
+
+                        fprintf (Graph_file,    "NODE%ld->NODE%ld ["
                                                 "len = 0.1, weight = 100, "
                                                 "style = invis, "
                                                 "constraint = true];\n",
-                                                data_iter, lst->nodes[data_iter].data,
-                                                data_iter, lst->nodes[data_iter].prev,
-                                                lst->nodes[data_iter].next,
                                                 data_iter - 1, data_iter
-                            );
+                                );
                     }
                 }
 
@@ -646,8 +676,28 @@ int64_t ListDtor (List *lst)
                                                 data_iter,
                                                 lst->nodes[data_iter].next,
                                                 data_iter,
-                                                lst->nodes[data_iter].prev);
+                                                lst->nodes[data_iter].prev
+                                );
+
+                        fprintf (LinearG_file,  "NODE%ld:<nx>->NODE%ld:"
+                                                "<pos> [color = blue, "
+                                                "constraint = false];\n"
+                                                "NODE%ld:<pr>->NODE%ld:"
+                                                "<pos> [color = purple, "
+                                                "constraint = false];\n",
+                                                data_iter,
+                                                lst->nodes[data_iter].next,
+                                                data_iter,
+                                                lst->nodes[data_iter].prev
+                                );
+                        fprintf (LinearG_file,  "NODE%ld->NODE%ld ["
+                                                "len = 0.1, weight = 1000, "
+                                                "style = invis, "
+                                                "constraint = true];\n",
+                                                data_iter, lst->nodes[data_iter].next
+                                );
                     }
+
                 }
 
                 fprintf (Graph_file,    "INFO"
@@ -659,11 +709,13 @@ int64_t ListDtor (List *lst)
                                             "<tl>TAIL = %ld|"
                                             "<fr>FREE = %ld\""
                                         "]\n",
-                                        lst->head, lst->tail, lst->free);
+                                        lst->head, lst->tail, lst->free
+                        );
 
                 fprintf (Graph_file,    "NODE%ld->INFO [len = 0.1, "
                                         "weight = 100, style = invis, "
-                                        "constraint = true];\n", lst->capacity - 1);
+                                        "constraint = true];\n", lst->capacity - 1
+                        );
 
                 fprintf (Graph_file,    "INFO:<hd>->NODE%ld "
                                         "[color = darkgreen, "
@@ -680,7 +732,10 @@ int64_t ListDtor (List *lst)
                         );
 
                 fprintf (Graph_file, "\n}");
+                fprintf (LinearG_file, "\n}");
+
                 fclose (Graph_file);
+                fclose (LinearG_file);
 
                 fprintf (Log_file, "</tr> <tr> <td>Next</td>");
 
@@ -702,18 +757,29 @@ int64_t ListDtor (List *lst)
                                     "\n<rect>Tail\n%ld</rect>\n\n"
                                     "<rect>Free\n%ld</rect>\n\n"
                                     "\n}</pre>",
-                                    lst->head, lst->tail, lst->free);
+                                    lst->head, lst->tail, lst->free
+                        );
 
                 char sys_command[49] = {};
                 snprintf (sys_command, 49,  "%s%d%s",
                                             "dot dotInput.dot -Tpng -o img/Img",
                                             GRAPH_NUM,
-                                            ".png");
+                                            ".png"
+                        );
 
                 system (sys_command);
 
-                fprintf (Log_file,  "\n<img src = \"img/Img%d.png\">\n",
-                                    GRAPH_NUM);
+                snprintf (sys_command, 49,  "%s%d%s",
+                                            "dot dotLinear.dot -Tpng -o img/Lin",
+                                            GRAPH_NUM,
+                                            ".png"
+                        );
+                system (sys_command);
+
+                fprintf (Log_file,  "\nPHYSICAL:\n<img src = \"img/Img%d.png\">\n"
+                                    "\nLOGICAL :\n<img src = \"img/Lin%d.png\">\n",
+                                    GRAPH_NUM, GRAPH_NUM
+                        );
                 GRAPH_NUM++;
                 fprintf (Log_file, HLINE (1000, 0) "\n");
             }
