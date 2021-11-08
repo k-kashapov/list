@@ -1,5 +1,5 @@
 *.exe
-*.make
 *.html
 *.dot
 *.png
+Makefile

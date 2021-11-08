@@ -115,7 +115,10 @@ long ListInsertPhys (List *lst, type_t value, long place)
     LIST_OK();
     if (place > lst->capacity)
     {
-        LOG_ERROR (INVALID INSERT ARG\nplace = %ld > capacity = %ld!\n, , place, lst->capacity);
+        LOG_ERROR (
+            INVALID INSERT ARG\nplace = %ld > capacity = %ld!\n, ,
+            place, lst->capacity
+        );
         return INVALID_INS_ARG;
     }
 
@@ -400,7 +403,6 @@ int64_t ListOK (List *lst)
     {
         if (lst->nodes[lst->nodes[curr].next].prev != curr)
         {
-            printf ("Not linked: curr = %ld, got = %ld\n", curr, lst->nodes[lst->nodes[curr].next].prev);
             err |= NEXT_NOT_LINKED;
             break;
         }
@@ -636,12 +638,10 @@ int64_t ListDtor (List *lst)
                     if (data_iter > 0 && lst->nodes[data_iter].prev >= 0)
                     {
                         fprintf (Graph_file,    "NODE%ld:<nx>->NODE%ld:"
-                                                "<pos> [weight = 10, "
-                                                "color = blue, "
+                                                "<pos> [color = blue, "
                                                 "constraint = false];\n"
                                                 "NODE%ld:<pr>->NODE%ld:"
-                                                "<pos> [weight = 1, "
-                                                "color = purple, "
+                                                "<pos> [color = purple, "
                                                 "constraint = false];\n",
                                                 data_iter,
                                                 lst->nodes[data_iter].next,
@@ -652,7 +652,7 @@ int64_t ListDtor (List *lst)
 
                 fprintf (Graph_file,    "INFO"
                                         "["
-                                            "shape=record, pos = \"0, 0!\" style = \"rounded\","
+                                            "shape=record, style = \"rounded\","
                                             "label = \""
                                             "INFO|"
                                             "<hd>HEAD = %ld| "
@@ -666,18 +666,15 @@ int64_t ListDtor (List *lst)
                                         "constraint = true];\n", lst->capacity - 1);
 
                 fprintf (Graph_file,    "INFO:<hd>->NODE%ld "
-                                        "[weight = 1, "
-                                        "color = darkgreen, "
+                                        "[color = darkgreen, "
                                         "constraint = false];\n"
 
                                         "INFO:<tl>->NODE%ld "
-                                        "[weight = 1, "
-                                        "color = orange, "
+                                        "[color = orange, "
                                         "constraint = false];\n"
 
                                         "INFO:<fr>->NODE%ld "
-                                        "[weight = 1, "
-                                        "color = red, "
+                                        "[color = red, "
                                         "constraint = false];\n",
                                         lst->head, lst->tail, lst->free
                         );
