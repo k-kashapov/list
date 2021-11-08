@@ -16,7 +16,11 @@ int main (int argc, const char **argv)
 
     ListPushBack (&lst, 5);
     ListPushBack (&lst, 6);
-    ListPushBack (&lst, 7);
+    ListPushFront (&lst, 7);
+    ListPushFront (&lst, 8);
+    ListPushBack (&lst, 9);
+    ListPushFront (&lst, 10);
+    ListLinearize (&lst);
 
     ListDtor (&lst);
 

@@ -56,7 +56,6 @@ enum LIST_STATES
     {                                                                           \
         int64_t err = ListOK (lst);                                             \
         ListDump (lst, err, __FUNCTION__);                                      \
-        if (err) return err;                                                    \
     }
 #else
     #define LIST_OK()
