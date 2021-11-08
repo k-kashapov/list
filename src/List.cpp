@@ -85,9 +85,11 @@ long ListLinearize (List *lst)
         lst->nodes[elem].prev = elem - 1;
     }
 
-    lst->nodes[0].data = 0;
-    lst->nodes[0].next = 0;
-    lst->nodes[0].prev = 0;
+    lst->nodes[0].data         = 0;
+    lst->nodes[0].next         = 0;
+    lst->nodes[0].prev         = 0;
+    lst->nodes[lst->size].next = 0;
+    lst->nodes[lst->size].prev = lst->size - 1;
 
     lst->head   = 1;
     lst->tail   = lst->size;
@@ -388,6 +390,7 @@ int64_t ListOK (List *lst)
     {
         if (lst->nodes[lst->nodes[curr].next].prev != curr)
         {
+            printf ("Not linked: curr = %ld, got = %ld\n", curr, lst->nodes[lst->nodes[curr].next].prev);
             err |= NEXT_NOT_LINKED;
             break;
         }
@@ -574,8 +577,6 @@ int64_t ListDtor (List *lst)
                     return err;
                 }
 
-                fprintf (Log_file, "<table> <tr> <th>Position</th>");
-
                 fprintf (Graph_file,    "NODE0"
                                         "["
                                             "shape=record, style = \"rounded\", "
@@ -586,30 +587,35 @@ int64_t ListDtor (List *lst)
                                             "<nx>Next = %ld }\""
                                         "]\n", 0l, 0l, 0l, 0l);
 
-                for (long data_iter = 1; data_iter < lst->capacity; data_iter++)
+                fprintf (Log_file, "<table> <tr> <th>Position</th>");
+
+                for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
                     fprintf (Log_file, "<th>%4ld</th>", data_iter);
-                    fprintf (Graph_file,    "NODE%ld"
-                                            "["
-                                                "shape=record, style = \"rounded\", "
-                                                "label = \""
-                                                "Data = %ld|"
-                                                "{ <pos>Position = %ld| "
-                                                "<pr>Prev = %ld|"
-                                                "<nx>Next = %ld }\""
-                                            "]\n"
-                                            "NODE%ld->NODE%ld ["
-                                            "len = 0.1, weight = 100, "
-                                            "style = invis, "
-                                            "constraint = true];\n",
-                                            data_iter, lst->nodes[data_iter].data,
-                                            data_iter, lst->nodes[data_iter].prev,
-                                            lst->nodes[data_iter].next,
-                                            data_iter - 1, data_iter
+                    if (data_iter > 0)
+                    {
+                        fprintf (Graph_file,    "NODE%ld"
+                                                "["
+                                                    "shape=record, style = \"rounded\", "
+                                                    "label = \""
+                                                    "Data = %ld|"
+                                                    "{ <pos>Position = %ld| "
+                                                    "<pr>Prev = %ld|"
+                                                    "<nx>Next = %ld }\""
+                                                "]\n"
+                                                "NODE%ld->NODE%ld ["
+                                                "len = 0.1, weight = 100, "
+                                                "style = invis, "
+                                                "constraint = true];\n",
+                                                data_iter, lst->nodes[data_iter].data,
+                                                data_iter, lst->nodes[data_iter].prev,
+                                                lst->nodes[data_iter].next,
+                                                data_iter - 1, data_iter
                             );
+                    }
                 }
 
-                fprintf (Log_file, "</tr> <tr> <td>Data</td>");
+                fprintf (Log_file, "</tr> <tr><td>Data</td>");
 
                 for (long data_iter = 0; data_iter < lst->capacity; data_iter++)
                 {
