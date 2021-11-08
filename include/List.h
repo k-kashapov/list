@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define LIST_LOGS
 #define MAX_INFO
@@ -109,7 +110,7 @@ struct List
     char linear;
 };
 
-int64_t ListInit (List *lst, long init_size = LIST_INIT_CAP);
+int64_t ListInit (List *lst, long init_size = 0, long push_elems = 0, ...);
 
 long LogicalToPhysicalAddr (List *lst, long num);
 

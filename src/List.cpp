@@ -12,14 +12,14 @@
 
 const int POISON = 0x42;
 
-int64_t ListInit (List *lst, long init_size)
+int64_t ListInit (List *lst, long init_size, long push_elems, ...)
 {
     #ifdef LIST_LOGS
         int open_err = OpenLogFile ();
         if (open_err) return OPEN_FILE_FAIL;
     #endif
 
-    if (init_size < 2) init_size = 2;
+    if (init_size < 1) init_size = 1;
 
     REALLOC (lst->nodes, Node, init_size);
 
@@ -42,6 +42,16 @@ int64_t ListInit (List *lst, long init_size)
     LOG_PRINT ("<em style = \"color : #16c95e\">List Initialized</em>\n");
     LIST_OK();
 
+    va_list elems;
+    va_start (elems, push_elems);
+
+    for (long elem = 0; elem < push_elems; elem++)
+    {
+        type_t value = va_arg (elems, type_t);
+        ListPushBack (lst, value);
+    }
+
+    va_end (elems);
     return OK;
 }
 
@@ -568,8 +578,11 @@ int64_t ListDtor (List *lst)
                 if (err)
             #endif
             {
-                fprintf (Log_file,  "<pre>{\n\tcapacity = %ld;\n\tsize = %ld;",\
-                                    lst->capacity, lst->size);
+                fprintf (Log_file,  "<pre>{\n"
+                                        "\tcapacity = %ld;\n"
+                                        "\tsize     = %ld;\n"
+                                        "\tlinear   = %d",
+                                    lst->capacity, lst->size, lst->linear);
 
                 if (!lst->nodes)
                 {

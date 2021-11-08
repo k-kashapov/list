@@ -1,5 +1,4 @@
 #include "Tests.h"
-#include <stdarg.h>
 #include <string.h>
 
 const int TEST_FAILED = -42;

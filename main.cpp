@@ -4,7 +4,7 @@
 int main (int argc, const char **argv)
 {
     List lst = {};
-    ListInit (&lst, 3);
+    ListInit (&lst, 5, 8, 1, 1, 1, 1, 1, 1, 1, 1);
 
     int mode = get_arg (argc, argv);
     if (mode == TEST_MODE)
