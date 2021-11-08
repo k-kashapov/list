@@ -3,16 +3,15 @@
 
 int main (int argc, const char **argv)
 {
-    List lst = {};
-    ListInit (&lst, 5, 8, 1, 1, 1, 1, 1, 1, 1, 1);
-
     int mode = get_arg (argc, argv);
     if (mode == TEST_MODE)
     {
-        Testing (&lst);
-        ListDtor (&lst);
+        Testing ();
         return 0;
     }
+
+    List lst = {};
+    ListInit (&lst, 5, 3, 1, 2, 8);
 
     ListPushBack (&lst, 5);
     ListPushBack (&lst, 6);

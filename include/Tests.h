@@ -6,6 +6,6 @@ enum MODES
     TEST_MODE = 1,
 };
 
-int Testing (List *lst);
+int Testing ();
 
 int get_arg (int argc, const char **argv);

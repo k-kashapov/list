@@ -31,26 +31,29 @@ static int RunTest (List *lst, int checks_num, ...)
     return OK;
 }
 
-int Testing (List *lst)
+int Testing ()
 {
+    List lst = {};
+    ListInit (&lst, 3);
+
     printf ("Running in test mode\n");
 
     int err = 0;
 
-    ListPushBack (lst, 5);
-    ListPushBack (lst, 6);
-    ListPushBack (lst, 7);
+    ListPushBack (&lst, 5);
+    ListPushBack (&lst, 6);
+    ListPushBack (&lst, 7);
 
-    err = RunTest (lst, 3, 5, 6, 7);
+    err = RunTest (&lst, 3, 5, 6, 7);
 
 
-    ListPushBack (lst, 9);
-    long pos8 = ListPushFront (lst, 8);
-    ListPushBack (lst, 7);
-    ListInsertPhys (lst, 6, pos8);
-    ListPopFront (lst);
+    ListPushBack (&lst, 9);
+    long pos8 = ListPushFront (&lst, 8);
+    ListPushBack (&lst, 7);
+    ListInsertPhys (&lst, 6, pos8);
+    ListPopFront (&lst);
 
-    err = RunTest (lst, 4, 9, 0, 7, 6);
+    err = RunTest (&lst, 4, 9, 0, 7, 6);
 
     printf ("Tests finished\n");
 
